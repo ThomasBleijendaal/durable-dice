@@ -1,0 +1,89 @@
+﻿@page "/"
+@page "/{gameId}"
+
+@using Microsoft.AspNetCore.SignalR.Client;
+@using DurableDice.Common.Models.State;
+
+@if (string.IsNullOrEmpty(_playerName))
+{
+	<input class="input-lg" placeholder="Enter your name" @bind="@_newPlayerName" />
+	<button class="btn btn-primary" @onclick="JoinAsync">Set name</button>
+}
+else if (_gameState != null)
+{
+	<button class="btn btn-primary" @onclick="StartAsync">Start</button>
+
+	foreach (var player in _gameState.Players)
+	{
+		<p>
+			@player.Id : @player.Name
+			(@(player.Id == _gameState.ActivePlayerId ? "(active)" : "(inactive)"))
+			(@(player.Id == _gameState.OwnerId ? "(owner)" : "(player)"))
+		</p>
+	}
+
+	foreach (var field in _gameState.Fields)
+	{
+		<p>
+			@field.OwnerId: @field.DiceCount
+		</p>
+	}
+}
+
+@code
+{
+	[Inject]
+	public NavigationManager navManager { get; set; }
+
+	[Parameter]
+	public string? GameId { get; set; }
+
+	private string _playerId { get; set; } = Guid.NewGuid().ToString();
+	private string _newPlayerName = "";
+	private string _playerName = "";
+
+	private HubConnection _hubConnection;
+
+	private GameState? _gameState;
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (string.IsNullOrEmpty(GameId))
+		{
+			GameId = Guid.NewGuid().ToString();
+
+			navManager.NavigateTo($"/{GameId}", false);
+		}
+
+		_hubConnection = new HubConnectionBuilder()
+			.WithUrl("http://localhost:7071/api")
+			.Build();
+
+		_hubConnection.On<GameState>("Broadcast", BroadcastMessage);
+
+		await _hubConnection.StartAsync();
+		await _hubConnection.SendAsync("JoinGame", GameId);
+	}
+
+	private void BroadcastMessage(GameState state)
+	{
+		_gameState = state;
+		StateHasChanged();
+	}
+
+	private async Task JoinAsync()
+	{
+		if (!string.IsNullOrWhiteSpace(_newPlayerName))
+		{
+			_playerName = _newPlayerName;
+
+			_gameState = new GameState();
+			await _hubConnection.SendAsync("AddPlayer", GameId, _playerId, _playerName);
+		}
+	}
+
+	private async Task StartAsync()
+	{
+		await _hubConnection.SendAsync("StartMatch", GameId);
+	}
+}
