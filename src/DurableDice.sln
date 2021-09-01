@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableDice.Functions", "Du
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableDice.GameClient", "DurableDice.GameClient\DurableDice.GameClient.csproj", "{96705954-B745-4A59-914C-04AC1ED6E431}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableDice.Common.Tests", "DurableDice.Common.Tests\DurableDice.Common.Tests.csproj", "{50BBA896-F1C0-4E95-A923-40951D9B68CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{96705954-B745-4A59-914C-04AC1ED6E431}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96705954-B745-4A59-914C-04AC1ED6E431}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{96705954-B745-4A59-914C-04AC1ED6E431}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50BBA896-F1C0-4E95-A923-40951D9B68CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50BBA896-F1C0-4E95-A923-40951D9B68CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50BBA896-F1C0-4E95-A923-40951D9B68CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50BBA896-F1C0-4E95-A923-40951D9B68CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

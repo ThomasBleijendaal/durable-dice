@@ -1,5 +1,6 @@
 ﻿using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
+using DurableDice.Common.Models.State;
 using DurableDice.Functions.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs;
@@ -38,9 +39,22 @@ public class GameHub : ServerlessHub
     [FunctionName(nameof(JoinGame))]
     public async Task JoinGame(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId)
+        string gameId,
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr,
+        [DurableClient]IDurableEntityClient entityClient)
     {
         await Groups.AddToGroupAsync(invocationContext.ConnectionId, gameId);
+
+        var entity = await entityClient.ReadEntityStateAsync<GameState>(new EntityId(nameof(GameEntity), gameId));
+        if (entity.EntityExists)
+        {
+            await signalr.AddAsync(new SignalRMessage
+            {
+                GroupName = gameId,
+                Arguments = new object[] { entity.EntityState },
+                Target = "Broadcast"
+            });
+        }
     }
 
     [FunctionName(nameof(AddPlayer))]

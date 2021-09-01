@@ -3,6 +3,7 @@
 @page "/"
 @page "/{gameId}"
 
+@using Blazored.LocalStorage
 @using DurableDice.Common.Abstractions
 @using DurableDice.Common.Models.Commands
 @using DurableDice.GameClient.Services
@@ -32,33 +33,57 @@ else if (_gameState != null)
 			}
 
 			<div class=@className>
-				@player.Name (@(_gameState.PlayerFieldCount(player)) | @player.DiceBuffer)
+				@player.Name (@(_gameState.PlayerFieldCount(player)) | @player.DiceBuffer | @(_gameState.Geometry.GetLargestContinuousFieldBlock(player.Id)))
 			</div>
 		}
 	</div>
 
-	if (_gameState.ActivePlayerId == _playerId)
+	if (_gameState.Fields.Any())
 	{
-		<button @onclick="EndRoundAsync">End round</button>
-	}
-
-	<div class="fields">
-		@foreach (var field in _gameState.Fields)
+		if (_gameState.ActivePlayerId == _playerId)
 		{
-			var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
-
-			var className = $"field player-{ownerIndex}";
-
-			if (_playerId == field.OwnerId)
-			{
-				className += " field-owned";
-			}
-
-			<div class=@className @onclick=@(() => FieldClickAsync(field))>
-				@field.DiceCount
-			</div>
+			<button @onclick="EndRoundAsync">End round</button>
 		}
-	</div>
+
+		<div class="fields">
+			@foreach (var field in _gameState.Fields)
+			{
+				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
+				var className = $"hexagon player-{ownerIndex}";
+
+				if (_playerId == field.OwnerId)
+				{
+					className += " field-owned";
+				}
+
+				if (field.Id == _hoveringFieldId)
+				{
+					className += _fromFieldId == "" ? " field-hover" : " field-target-hover";
+				}
+
+				if (field.Id == _fromFieldId)
+				{
+					className += " field-attack";
+				}
+
+				@foreach (var coordinate in field.Coordinates)
+				{
+					var left = coordinate.X % 2 == 1
+					? coordinate.X * 12
+					: coordinate.X * 12;
+					var top = coordinate.X % 2 == 1
+					? 5 + coordinate.Y * 14
+					: coordinate.Y * 13;
+
+					<div class=@className style="left: @(left)px; top: @(top)px;" title=@field.DiceCount @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
+						<div class="left"></div>
+						<div class="middle"></div>
+						<div class="right"></div>
+					</div>
+				}
+			}
+		</div>
+	}
 }
 
 @code
@@ -66,12 +91,17 @@ else if (_gameState != null)
 	[Inject]
 	public NavigationManager navManager { get; set; } = null!;
 
+	[Inject]
+	public ISyncLocalStorageService localStorage { get; set; } = null!;
+
 	[Parameter]
 	public string? GameId { get; set; }
 
 	private string _playerId { get; set; } = Guid.NewGuid().ToString();
 	private string _newPlayerName = "";
 	private string _playerName = "";
+
+	private string _hoveringFieldId = "";
 
 	private string _fromFieldId = "";
 	private bool _attacking = false;
@@ -89,6 +119,13 @@ else if (_gameState != null)
 		{
 			GameId = Guid.NewGuid().ToString();
 			navManager.NavigateTo($"/{GameId}", false);
+
+			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
+		}
+		else
+		{
+			_playerId = localStorage.GetItem<string>($"playerId-{GameId}");
+			_playerName = _playerId;
 		}
 
 		var gameEntityService = new GameEntityService(GameId);
@@ -134,7 +171,7 @@ else if (_gameState != null)
 
 		if (string.IsNullOrEmpty(_fromFieldId))
 		{
-			if (field.OwnerId == _playerId)
+			if (field.OwnerId == _playerId && field.DiceCount > 1)
 			{
 				_fromFieldId = field.Id;
 			}
@@ -148,6 +185,29 @@ else if (_gameState != null)
 			await _gameEntity.AttackFieldAsync(new AttackMoveCommand(_playerId, _fromFieldId, field.Id));
 			_attacking = true;
 		}
+
+		StateHasChanged();
+	}
+
+	private async Task FieldHover(Field field)
+	{
+		if (field.OwnerId == _playerId && _gameState.ActivePlayerId == _playerId && field.DiceCount > 1)
+		{
+			_hoveringFieldId = field.Id;
+
+			StateHasChanged();
+		}
+		else if (!string.IsNullOrWhiteSpace(_fromFieldId) && field.OwnerId != _playerId && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
+		{
+			_hoveringFieldId = field.Id;
+
+			StateHasChanged();
+		}
+	}
+
+	private async Task FieldLeave()
+	{
+		_hoveringFieldId = "";
 
 		StateHasChanged();
 	}

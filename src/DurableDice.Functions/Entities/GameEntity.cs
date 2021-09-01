@@ -1,4 +1,5 @@
 ﻿using DurableDice.Common.Abstractions;
+using DurableDice.Common.Geometry;
 using DurableDice.Common.Helpers;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
@@ -53,6 +54,7 @@ public class GameEntity : GameState, IGameEntity
             fromField.DiceCount <= 1 ||
             !Geometry.AreNeighboringFields(fromField.Id, toField.Id))
         {
+            await DistributeStateAsync();
             return;
         }
 
@@ -111,16 +113,7 @@ public class GameEntity : GameState, IGameEntity
 
         var fieldCountPerPlayer = 32 / Players.Count;
 
-        Fields = Players.SelectMany(player =>
-            Enumerable.Range(0, fieldCountPerPlayer)
-                .Select(i => new Field
-                {
-                    DiceCount = 1,
-                    Id = Guid.NewGuid().ToString(),
-                    OwnerId = player.Id
-                }))
-            .OrderBy(x => Guid.NewGuid())
-            .ToList();
+        Fields = FieldGenerator.GenerateFields(Players);
 
         foreach (var player in Players)
         {

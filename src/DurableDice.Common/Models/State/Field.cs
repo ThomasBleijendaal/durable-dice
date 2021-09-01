@@ -14,5 +14,8 @@ public class Field
     [JsonProperty]
     public int DiceCount { get; set; }
 
+    [JsonProperty]
+    public List<Coordinate> Coordinates { get; set; } = new List<Coordinate>();
+
     public int MaxDiceAllowedToAdd => 8 - DiceCount;
 }

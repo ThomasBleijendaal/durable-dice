@@ -26,7 +26,7 @@ public class GameState
 
     public FieldGeometry Geometry
     {
-        get => _geomertry ??= new FieldGeometry();
+        get => _geomertry ??= new FieldGeometry(Fields);
     }
 
     public Player ActivePlayer 
