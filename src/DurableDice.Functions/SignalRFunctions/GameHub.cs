@@ -19,6 +19,7 @@ public class GameHub : ServerlessHub
     {
         try
         {
+            // TODO: setup encryption token here for signing messages
             return Negotiate(
                 req.Headers.TryGetValue("x-ms-signalr-user-id", out var value) ? value : "");
         }

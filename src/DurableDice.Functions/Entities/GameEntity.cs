@@ -13,6 +13,7 @@ public class GameEntity : GameState, IGameEntity
 {
     private readonly IAsyncCollector<SignalRMessage> _signalr;
     private readonly string _gameId;
+    private readonly Random _random = new Random();
 
     public GameEntity(
         IAsyncCollector<SignalRMessage> signalr,
@@ -21,6 +22,12 @@ public class GameEntity : GameState, IGameEntity
         _signalr = signalr;
         _gameId = gameId;
     }
+
+    [FunctionName(nameof(GameEntity))]
+    public static Task ProxyGameEntityFunction(
+        [EntityTrigger] IDurableEntityContext context,
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr) 
+            => context.DispatchAsync<GameEntity>(signalr, context.EntityKey);
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
@@ -43,7 +50,8 @@ public class GameEntity : GameState, IGameEntity
             toField == null ||
             fromField.OwnerId != command.PlayerId ||
             command.PlayerId != ActivePlayerId ||
-            fromField.DiceCount <= 1)
+            fromField.DiceCount <= 1 ||
+            !Geometry.AreNeighboringFields(fromField.Id, toField.Id))
         {
             return;
         }
@@ -60,7 +68,7 @@ public class GameEntity : GameState, IGameEntity
         }
 
         fromField.DiceCount = 1;
-        
+
         await DistributeStateAsync();
     }
 
@@ -68,13 +76,13 @@ public class GameEntity : GameState, IGameEntity
     {
         if (ActivePlayerId == playerId)
         {
-            var index = Players.FindIndex(x => x.Id == playerId);
-            if (++index >= Players.Count)
-            {
-                index = 0;
-            }
+            var diceBuffer = Geometry.GetLargestContinuousFieldBlock(playerId) + ActivePlayer.DiceBuffer;
 
-            ActivePlayerId = Players[index].Id;
+            diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
+
+            ActivePlayer.DiceBuffer = diceBuffer;
+
+            SelectNextActivePlayer(playerId);
 
             await DistributeStateAsync();
         }
@@ -99,20 +107,25 @@ public class GameEntity : GameState, IGameEntity
             return;
         }
 
-        var random = new Random();
+        ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
 
-        ActivePlayerId = Players[random.Next(0, Players.Count)].Id;
+        var fieldCountPerPlayer = 32 / Players.Count;
 
         Fields = Players.SelectMany(player =>
-            Enumerable.Range(0, 5)
+            Enumerable.Range(0, fieldCountPerPlayer)
                 .Select(i => new Field
                 {
-                    DiceCount = random.Next(1, 5),
+                    DiceCount = 1,
                     Id = Guid.NewGuid().ToString(),
                     OwnerId = player.Id
                 }))
             .OrderBy(x => Guid.NewGuid())
             .ToList();
+
+        foreach (var player in Players)
+        {
+            AddNewDiceToPlayer(player.Id, fieldCountPerPlayer);
+        }
 
         await DistributeStateAsync();
     }
@@ -125,9 +138,48 @@ public class GameEntity : GameState, IGameEntity
             Target = "Broadcast"
         });
 
-    [FunctionName(nameof(GameEntity))]
-    public static Task ProxyGameEntityFunction(
-        [EntityTrigger] IDurableEntityContext context,
-        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
-            => context.DispatchAsync<GameEntity>(signalr, context.EntityKey);
+    private void SelectNextActivePlayer(string playerId)
+    {
+        var index = Players.FindIndex(x => x.Id == playerId);
+        if (++index >= Players.Count)
+        {
+            index = 0;
+        }
+
+        ActivePlayerId = Players[index].Id;
+    }
+
+    private int AddNewDiceToPlayer(string playerId, int diceBuffer)
+    {
+        do
+        {
+            diceBuffer = AddNewDiceToFields(diceBuffer, PlayerRandomFields(playerId));
+            if (diceBuffer == 0)
+            {
+                break;
+            }
+        }
+        while (!ActivePlayerFields.All(x => x.MaxDiceAllowedToAdd == 0));
+
+        return diceBuffer;
+
+        int AddNewDiceToFields(int diceBuffer, IEnumerable<Field> playerFields)
+        {
+            foreach (var field in playerFields)
+            {
+                var diceTaken = _random.Next(0, Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
+
+                field.DiceCount += diceTaken;
+
+                diceBuffer -= diceTaken;
+
+                if (diceBuffer <= 0)
+                {
+                    break;
+                }
+            }
+
+            return diceBuffer;
+        }
+    }
 }

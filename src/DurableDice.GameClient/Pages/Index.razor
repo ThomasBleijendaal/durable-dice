@@ -32,7 +32,7 @@ else if (_gameState != null)
 			}
 
 			<div class=@className>
-				@player.Name
+				@player.Name (@(_gameState.PlayerFieldCount(player)) | @player.DiceBuffer)
 			</div>
 		}
 	</div>

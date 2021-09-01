@@ -1,4 +1,5 @@
 ﻿using DurableDice.Common.Enums;
+using DurableDice.Common.Geometry;
 using Newtonsoft.Json;
 
 namespace DurableDice.Common.Models.State;
@@ -20,4 +21,23 @@ public class GameState
 
     [JsonProperty]
     public MatchState State { get; set; }
+
+    private FieldGeometry? _geomertry;
+
+    public FieldGeometry Geometry
+    {
+        get => _geomertry ??= new FieldGeometry();
+    }
+
+    public Player ActivePlayer 
+        => Players.First(x => x.Id == ActivePlayerId);
+
+    public IEnumerable<Field> ActivePlayerFields
+        => Fields.Where(x => x.OwnerId == ActivePlayerId);
+
+    public IEnumerable<Field> PlayerRandomFields(string playerId)
+        => Fields.Where(x => x.OwnerId == playerId).OrderBy(x => Guid.NewGuid());
+
+    public int PlayerFieldCount(Player player) 
+        => Fields.Count(x => x.OwnerId == player.Id);
 }
