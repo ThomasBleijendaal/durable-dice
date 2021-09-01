@@ -1,39 +1,70 @@
-﻿@page "/"
+﻿@implements IDisposable
+
+@page "/"
 @page "/{gameId}"
 
+@using DurableDice.Common.Abstractions
+@using DurableDice.Common.Models.Commands
+@using DurableDice.GameClient.Services
 @using Microsoft.AspNetCore.SignalR.Client;
 @using DurableDice.Common.Models.State;
 
 @if (string.IsNullOrEmpty(_playerName))
 {
-	<input class="input-lg" placeholder="Enter your name" @bind="@_newPlayerName" />
-	<button class="btn btn-primary" @onclick="JoinAsync">Set name</button>
+	<input placeholder="Enter your name" @bind="@_newPlayerName" />
+	<button @onclick="JoinAsync">Set name</button>
 }
 else if (_gameState != null)
 {
-	<button class="btn btn-primary" @onclick="StartAsync">Start</button>
+	<button @onclick="StartAsync">Start</button>
 
-	foreach (var player in _gameState.Players)
+	<div class="players">
+		@foreach (var (player, index) in _players)
+		{
+			var className = $"player player-{index}";
+			if (player.Id == _gameState.ActivePlayerId)
+			{
+				className += " player-active";
+			}
+			if (player.Id == _gameState.OwnerId)
+			{
+				className += " player-owner";
+			}
+
+			<div class=@className>
+				@player.Name
+			</div>
+		}
+	</div>
+
+	if (_gameState.ActivePlayerId == _playerId)
 	{
-		<p>
-			@player.Id : @player.Name
-			(@(player.Id == _gameState.ActivePlayerId ? "(active)" : "(inactive)"))
-			(@(player.Id == _gameState.OwnerId ? "(owner)" : "(player)"))
-		</p>
+		<button @onclick="EndRoundAsync">End round</button>
 	}
 
-	foreach (var field in _gameState.Fields)
-	{
-		<p>
-			@field.OwnerId: @field.DiceCount
-		</p>
-	}
+	<div class="fields">
+		@foreach (var field in _gameState.Fields)
+		{
+			var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
+
+			var className = $"field player-{ownerIndex}";
+
+			if (_playerId == field.OwnerId)
+			{
+				className += " field-owned";
+			}
+
+			<div class=@className @onclick=@(() => FieldClickAsync(field))>
+				@field.DiceCount
+			</div>
+		}
+	</div>
 }
 
 @code
 {
 	[Inject]
-	public NavigationManager navManager { get; set; }
+	public NavigationManager navManager { get; set; } = null!;
 
 	[Parameter]
 	public string? GameId { get; set; }
@@ -42,32 +73,40 @@ else if (_gameState != null)
 	private string _newPlayerName = "";
 	private string _playerName = "";
 
-	private HubConnection _hubConnection;
+	private string _fromFieldId = "";
+	private bool _attacking = false;
+
+	private IGameEntity _gameEntity = null!;
 
 	private GameState? _gameState;
 
-	protected override async Task OnInitializedAsync()
+	private IEnumerable<(Player player, int index)> _players
+		=> _gameState?.Players.Select((player, index) => (player, index)) ?? throw new Exception();
+
+	protected override void OnInitialized()
 	{
 		if (string.IsNullOrEmpty(GameId))
 		{
 			GameId = Guid.NewGuid().ToString();
-
 			navManager.NavigateTo($"/{GameId}", false);
 		}
 
-		_hubConnection = new HubConnectionBuilder()
-			.WithUrl("http://localhost:7071/api")
-			.Build();
+		var gameEntityService = new GameEntityService(GameId);
+		gameEntityService.NewStateReceived += NewState;
 
-		_hubConnection.On<GameState>("Broadcast", BroadcastMessage);
-
-		await _hubConnection.StartAsync();
-		await _hubConnection.SendAsync("JoinGame", GameId);
+		_gameEntity = gameEntityService;
 	}
 
-	private void BroadcastMessage(GameState state)
+	private void NewState(GameState state)
 	{
 		_gameState = state;
+
+		if (_attacking)
+		{
+			_attacking = false;
+			_fromFieldId = "";
+		}
+
 		StateHasChanged();
 	}
 
@@ -78,12 +117,46 @@ else if (_gameState != null)
 			_playerName = _newPlayerName;
 
 			_gameState = new GameState();
-			await _hubConnection.SendAsync("AddPlayer", GameId, _playerId, _playerName);
+
+			await _gameEntity.AddPlayerAsync(new AddPlayerCommand(_playerId, _playerName));
 		}
 	}
 
-	private async Task StartAsync()
+	private async Task StartAsync() => await _gameEntity.StartMatchAsync();
+	private async Task EndRoundAsync() => await _gameEntity.EndRoundAsync(_playerId);
+
+	private async Task FieldClickAsync(Field field)
 	{
-		await _hubConnection.SendAsync("StartMatch", GameId);
+		if (_attacking || _gameState == null || _gameState.ActivePlayerId != _playerId)
+		{
+			return;
+		}
+
+		if (string.IsNullOrEmpty(_fromFieldId))
+		{
+			if (field.OwnerId == _playerId)
+			{
+				_fromFieldId = field.Id;
+			}
+		}
+		else if (field.Id == _fromFieldId)
+		{
+			_fromFieldId = "";
+		}
+		else if (field.OwnerId != _playerId)
+		{
+			await _gameEntity.AttackFieldAsync(new AttackMoveCommand(_playerId, _fromFieldId, field.Id));
+			_attacking = true;
+		}
+
+		StateHasChanged();
+	}
+
+	public void Dispose()
+	{
+		if (_gameEntity is GameEntityService service)
+		{
+			service.NewStateReceived -= NewState;
+		}
 	}
 }

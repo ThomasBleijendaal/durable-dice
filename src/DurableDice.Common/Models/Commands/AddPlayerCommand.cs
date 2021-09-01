@@ -1,3 +1,3 @@
 ﻿namespace DurableDice.Common.Models.Commands;
 
-public record AddPlayerCommand(string GameId, string PlayerId, string PlayerName);
+public record AddPlayerCommand(string PlayerId, string PlayerName);

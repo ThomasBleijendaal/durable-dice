@@ -4,14 +4,14 @@ namespace DurableDice.Common.Abstractions;
 
 public interface IGameEntity
 {
-    Task<bool> AddPlayerAsync(AddPlayerCommand command);
+    Task AddPlayerAsync(AddPlayerCommand command);
 
-    Task<bool> AttackFieldAsync(AttackMoveCommand command);
+    Task AttackFieldAsync(AttackMoveCommand command);
 
-    Task<bool> EndRoundAsync(string playerId);
+    Task EndRoundAsync(string playerId);
 
-    Task<bool> RemovePlayerAsync(string playerId);
+    Task RemovePlayerAsync(string playerId);
 
-    Task<bool> StartMatchAsync();
+    Task StartMatchAsync();
 }
 

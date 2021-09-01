@@ -1,7 +1,7 @@
-﻿using DurableDice.Common.Models.Commands;
-using DurableDice.Functions.OrchestrationFunctions;
+﻿using DurableDice.Common.Abstractions;
+using DurableDice.Common.Models.Commands;
+using DurableDice.Functions.Entities;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -46,36 +46,58 @@ public class GameHub : ServerlessHub
     public async Task AddPlayer(
         [SignalRTrigger] InvocationContext invocationContext,
         string gameId,
-        string playerId,
-        string playerName,
-        [DurableClient] IDurableClient durableClient)
-    {
-        await durableClient.StartNewAsync(nameof(GameOrchestrationFunction.AddPlayerAsync), new AddPlayerCommand(gameId, playerId, playerName));
-    }
+        AddPlayerCommand command,
+        [DurableClient] IDurableClient durableClient) 
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(gameId),
+            x => x.AddPlayerAsync(command));
 
     [FunctionName(nameof(StartMatch))]
     public async Task StartMatch(
         [SignalRTrigger] InvocationContext invocationContext,
         string gameId,
         [DurableClient] IDurableClient durableClient)
-    {
-        await durableClient.StartNewAsync(nameof(GameOrchestrationFunction.StartMatchAsync), new StartMatchCommand(gameId));
-    }
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(gameId),
+            x => x.StartMatchAsync());
 
-    //[FunctionName(nameof(Broadcast))]
-    //public async Task Broadcast(
-    //    [SignalRTrigger] InvocationContext invocationContext, 
-    //    string username, 
-    //    string message)
-    //{
-    //    await Clients.All.SendAsync(nameof(Broadcast), username, message);
-    //}
+    [FunctionName(nameof(AttackField))]
+    public async Task AttackField(
+        [SignalRTrigger] InvocationContext invocationContext,
+        string gameId,
+        AttackMoveCommand command,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(gameId),
+            x => x.AttackFieldAsync(command));
+
+    [FunctionName(nameof(EndRound))]
+    public async Task EndRound(
+        [SignalRTrigger] InvocationContext invocationContext,
+        string gameId,
+        string playerId,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(gameId),
+            x => x.EndRoundAsync(playerId));
+
+    [FunctionName(nameof(RemovePlayer))]
+    public async Task RemovePlayer(
+        [SignalRTrigger] InvocationContext invocationContext,
+        string gameId,
+        string playerId,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(gameId),
+            x => x.RemovePlayerAsync(playerId));
 
     [FunctionName(nameof(OnDisconnected))]
     public void OnDisconnected([SignalRTrigger] InvocationContext invocationContext)
     {
 
     }
+
+    private static EntityId EntityId(string gameId) => new EntityId(nameof(GameEntity), gameId);
 }
 
 #pragma warning restore IDE1006 // Naming Styles

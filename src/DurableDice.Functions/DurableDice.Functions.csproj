@@ -14,7 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DurableDice.Common\DurableDice.Common.csproj" />
-    <ProjectReference Include="..\DurableDice.Data\DurableDice.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
