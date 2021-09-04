@@ -10,40 +10,69 @@
 @using Microsoft.AspNetCore.SignalR.Client;
 @using DurableDice.Common.Models.State;
 
+@if (!_connected)
+{
+	<p class="connection-state">Connecting..</p>
+}
+
 @if (string.IsNullOrEmpty(_playerName))
 {
-	<input placeholder="Enter your name" @bind="@_newPlayerName" />
-	<button @onclick="JoinAsync">Set name</button>
+	<input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
+	<button @onclick="JoinAsync">Join</button>
 }
 else if (_gameState != null)
 {
-	<button @onclick="StartAsync">Start</button>
-
 	<div class="players">
 		@foreach (var (player, index) in _players)
 		{
+			var fields = _gameState.PlayerFieldCount(player);
 			var className = $"player player-{index}";
 			if (player.Id == _gameState.ActivePlayerId)
 			{
 				className += " player-active";
 			}
-			if (player.Id == _gameState.OwnerId)
+			if (player.Id == _playerId)
 			{
-				className += " player-owner";
+				className += " player-you";
+			}
+			if (fields == 0)
+			{
+				className += " player-dead";
+			}
+			if (!player.Ready)
+			{
+				className += " player-not-ready";
 			}
 
 			<div class=@className>
-				@player.Name (@(_gameState.PlayerFieldCount(player)) | @player.DiceBuffer | @(_gameState.Geometry.GetLargestContinuousFieldBlock(player.Id)))
+				@player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
 			</div>
 		}
 	</div>
 
-	if (_gameState.Fields.Any())
+	if (!_gameState.Fields.Any())
 	{
-		if (_gameState.ActivePlayerId == _playerId)
-		{
-			<button @onclick="EndRoundAsync">End round</button>
-		}
+		<div class="buttons">
+			<button @onclick="ReadyAsync">Ready</button>
+		</div>
+	}
+
+	if (_gameState.Winner is Player winner)
+	{
+		<p>@winner.Name won</p>
+	}
+	else if (_gameState.Fields.Any())
+	{
+		<div class="buttons">
+			@if (_gameState.PlayerIsDead(_playerId))
+			{
+				<p>You are dead.</p>
+			}
+			else if (_gameState.ActivePlayerId == _playerId)
+			{
+				<p>It's your turn! Attack your neighbor or <button @onclick="EndRoundAsync">end round</button></p>
+			}
+		</div>
 
 		<div class="fields">
 			@foreach (var field in _gameState.Fields)
@@ -58,7 +87,13 @@ else if (_gameState != null)
 
 				if (field.Id == _hoveringFieldId)
 				{
-					className += _fromFieldId == "" ? " field-hover" : " field-target-hover";
+					className += _fromFieldId == ""
+						? (field.DiceCount == 1 
+							? " field-hover field-hover-not-allowed" 
+							: " field-hover")
+						: (_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id) && field.OwnerId != _playerId) 
+							? " field-hover field-target-hover" 
+							: "";
 				}
 
 				if (field.Id == _fromFieldId)
@@ -68,21 +103,33 @@ else if (_gameState != null)
 
 				@foreach (var coordinate in field.Coordinates)
 				{
-					var left = coordinate.X % 2 == 1
-					? coordinate.X * 12
-					: coordinate.X * 12;
-					var top = coordinate.X % 2 == 1
-					? 5 + coordinate.Y * 14
-					: coordinate.Y * 13;
+					var (left, top) = Position(coordinate);
 
-					<div class=@className style="left: @(left)px; top: @(top)px;" title=@field.DiceCount @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
+					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
 						<div class="left"></div>
 						<div class="middle"></div>
 						<div class="right"></div>
 					</div>
 				}
+
+				{
+					var (left, top) = Position(field.Center);
+
+					<div class="label" style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
+						@field.DiceCount
+					</div>
+				}
 			}
 		</div>
+
+		@if (_gameState.PreviousAttack is Attack attack) 
+		{
+			<div class="attack">
+				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">@attack.AttackingDiceCount</div>
+				<div class="attacked">attacked</div>
+				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">@attack.DefendingDiceCount</div>
+			</div>
+		}
 	}
 }
 
@@ -96,6 +143,8 @@ else if (_gameState != null)
 
 	[Parameter]
 	public string? GameId { get; set; }
+
+	private bool _connected = true;
 
 	private string _playerId { get; set; } = Guid.NewGuid().ToString();
 	private string _newPlayerName = "";
@@ -115,12 +164,10 @@ else if (_gameState != null)
 
 	protected override void OnInitialized()
 	{
-		if (string.IsNullOrEmpty(GameId))
+		if (string.IsNullOrEmpty(GameId) || !Guid.TryParse(GameId, out _))
 		{
 			GameId = Guid.NewGuid().ToString();
 			navManager.NavigateTo($"/{GameId}", false);
-
-			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
 		}
 		else
 		{
@@ -128,8 +175,15 @@ else if (_gameState != null)
 			_playerName = _playerId;
 		}
 
+		if (string.IsNullOrEmpty(_playerId))
+		{
+			_playerId = Guid.NewGuid().ToString();
+			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
+		}
+
 		var gameEntityService = new GameEntityService(GameId);
 		gameEntityService.NewStateReceived += NewState;
+		gameEntityService.ConnectionState += ConnectionState;
 
 		_gameEntity = gameEntityService;
 	}
@@ -147,19 +201,23 @@ else if (_gameState != null)
 		StateHasChanged();
 	}
 
+	private void ConnectionState(bool connected)
+	{
+		_connected = connected;
+		StateHasChanged();
+	}
+
 	private async Task JoinAsync()
 	{
 		if (!string.IsNullOrWhiteSpace(_newPlayerName))
 		{
 			_playerName = _newPlayerName;
 
-			_gameState = new GameState();
-
 			await _gameEntity.AddPlayerAsync(new AddPlayerCommand(_playerId, _playerName));
 		}
 	}
 
-	private async Task StartAsync() => await _gameEntity.StartMatchAsync();
+	private async Task ReadyAsync() => await _gameEntity.ReadyAsync(_playerId);
 	private async Task EndRoundAsync() => await _gameEntity.EndRoundAsync(_playerId);
 
 	private async Task FieldClickAsync(Field field)
@@ -189,15 +247,19 @@ else if (_gameState != null)
 		StateHasChanged();
 	}
 
+	[Obsolete("Move to css")]
 	private async Task FieldHover(Field field)
 	{
-		if (field.OwnerId == _playerId && _gameState.ActivePlayerId == _playerId && field.DiceCount > 1)
+		if (field.OwnerId == _playerId &&
+			_gameState.ActivePlayerId == _playerId)
 		{
 			_hoveringFieldId = field.Id;
 
 			StateHasChanged();
 		}
-		else if (!string.IsNullOrWhiteSpace(_fromFieldId) && field.OwnerId != _playerId && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
+		else if (!string.IsNullOrWhiteSpace(_fromFieldId) &&
+			field.OwnerId != _playerId &&
+			_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
 		{
 			_hoveringFieldId = field.Id;
 
@@ -205,6 +267,7 @@ else if (_gameState != null)
 		}
 	}
 
+	[Obsolete("Move to css")]
 	private async Task FieldLeave()
 	{
 		_hoveringFieldId = "";
@@ -218,5 +281,17 @@ else if (_gameState != null)
 		{
 			service.NewStateReceived -= NewState;
 		}
+	}
+
+	public (int left, int top) Position(Coordinate coordinate)
+	{
+		var left = coordinate.X % 2 == 1
+			? coordinate.X * 21
+			: coordinate.X * 21;
+		var top = coordinate.X % 2 == 1
+			? 12 + coordinate.Y * 24
+			: coordinate.Y * 24;
+
+		return (left, top);
 	}
 }

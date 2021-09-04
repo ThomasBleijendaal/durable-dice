@@ -27,17 +27,16 @@ public class GameEntity : GameState, IGameEntity
     [FunctionName(nameof(GameEntity))]
     public static Task ProxyGameEntityFunction(
         [EntityTrigger] IDurableEntityContext context,
-        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr) 
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
             => context.DispatchAsync<GameEntity>(signalr, context.EntityKey);
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
-        if (string.IsNullOrEmpty(OwnerId) || !Players.Any(x => x.Id == OwnerId))
+        Players.Add(new Player
         {
-            OwnerId = command.PlayerId;
-        }
-
-        Players.Add(new Player { Id = command.PlayerId, Name = command.PlayerName });
+            Id = command.PlayerId,
+            Name = command.PlayerName?.Substring(0, Math.Min(command.PlayerName.Length, 16)) ?? "Dummy"
+        });
 
         await DistributeStateAsync();
     }
@@ -58,10 +57,16 @@ public class GameEntity : GameState, IGameEntity
             return;
         }
 
-        // TODO: expose this attack in state change
-
         var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount);
         var defendThrow = DiceHelper.ThrowDice(toField.DiceCount);
+
+        PreviousAttack = new Attack
+        {
+            AttackerId = fromField.OwnerId,
+            AttackingDiceCount = attackThrow,
+            DefenderId = toField.OwnerId,
+            DefendingDiceCount = defendThrow
+        };
 
         if (attackThrow > defendThrow)
         {
@@ -70,6 +75,8 @@ public class GameEntity : GameState, IGameEntity
         }
 
         fromField.DiceCount = 1;
+
+        Players[PlayerIndex(fromField.OwnerId)].ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(fromField.OwnerId);
 
         await DistributeStateAsync();
     }
@@ -84,7 +91,12 @@ public class GameEntity : GameState, IGameEntity
 
             ActivePlayer.DiceBuffer = diceBuffer;
 
-            SelectNextActivePlayer(playerId);
+            if (!Fields.All(x => x.OwnerId == playerId))
+            {
+                SelectNextActivePlayer(playerId);
+            }
+
+            PreviousAttack = null;
 
             await DistributeStateAsync();
         }
@@ -102,22 +114,22 @@ public class GameEntity : GameState, IGameEntity
         await DistributeStateAsync();
     }
 
-    public async Task StartMatchAsync()
+    public async Task ReadyAsync(string playerId)
     {
-        if (Players.Count < 2)
+        Players.First(x => x.Id == playerId).Ready = true;
+
+        if (Players.Count > 1 && Players.All(x => x.Ready))
         {
-            return;
-        }
+            ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
 
-        ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
+            var fieldCountPerPlayer = 32 / Players.Count;
 
-        var fieldCountPerPlayer = 32 / Players.Count;
+            Fields = FieldGenerator.GenerateFields(Players);
 
-        Fields = FieldGenerator.GenerateFields(Players);
-
-        foreach (var player in Players)
-        {
-            AddNewDiceToPlayer(player.Id, fieldCountPerPlayer);
+            foreach (var player in Players)
+            {
+                AddNewDiceToPlayer(player.Id, fieldCountPerPlayer);
+            }
         }
 
         await DistributeStateAsync();
@@ -133,13 +145,20 @@ public class GameEntity : GameState, IGameEntity
 
     private void SelectNextActivePlayer(string playerId)
     {
-        var index = Players.FindIndex(x => x.Id == playerId);
-        if (++index >= Players.Count)
+        if (Winner != null)
         {
-            index = 0;
+            return;
         }
 
-        ActivePlayerId = Players[index].Id;
+        var newIndex = Players.FindIndex(x => x.Id == playerId) + 1;
+
+        ActivePlayerId = newIndex == Players.Count
+            ? Players[0].Id
+            : Players
+                .Select((player, index) => (player, index))
+                .Where(x => PlayerFieldCount(x.player) > 0)
+                .First(x => x.index >= newIndex)
+                .player.Id;
     }
 
     private int AddNewDiceToPlayer(string playerId, int diceBuffer)

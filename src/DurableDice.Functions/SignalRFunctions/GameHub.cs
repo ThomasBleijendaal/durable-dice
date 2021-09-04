@@ -20,7 +20,7 @@ public class GameHub : ServerlessHub
     {
         try
         {
-            // TODO: setup encryption token here for signing messages
+            // TODO: setup secret for authenticating requests
             return Negotiate(
                 req.Headers.TryGetValue("x-ms-signalr-user-id", out var value) ? value : "");
         }
@@ -67,14 +67,15 @@ public class GameHub : ServerlessHub
             EntityId(gameId),
             x => x.AddPlayerAsync(command));
 
-    [FunctionName(nameof(StartMatch))]
-    public async Task StartMatch(
+    [FunctionName(nameof(Ready))]
+    public async Task Ready(
         [SignalRTrigger] InvocationContext invocationContext,
         string gameId,
+        string playerId,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
             EntityId(gameId),
-            x => x.StartMatchAsync());
+            x => x.ReadyAsync(playerId));
 
     [FunctionName(nameof(AttackField))]
     public async Task AttackField(

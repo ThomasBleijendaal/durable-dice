@@ -19,18 +19,15 @@ public class GameEntityService : IGameEntity
             .Build();
 
         _connection.On<GameState>("Broadcast", (newState) => NewStateReceived?.Invoke(newState));
+        _connection.Reconnecting += Reconnecting;
+        _connection.Reconnected += Reconnected;
 
         _init = InitAsync();
         _gameId = gameId;
     }
 
-    private async Task InitAsync()
-    {
-        await _connection.StartAsync();
-        await _connection.SendAsync("JoinGame", _gameId);
-    }
-
     public event Action<GameState>? NewStateReceived;
+    public event Action<bool>? ConnectionState;
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
@@ -56,9 +53,27 @@ public class GameEntityService : IGameEntity
         await _connection.SendAsync("RemovePlayer", _gameId, playerId);
     }
 
-    public async Task StartMatchAsync()
+    public async Task ReadyAsync(string playerId)
     {
         await _init;
-        await _connection.SendAsync("StartMatch", _gameId);
+        await _connection.SendAsync("Ready", _gameId, playerId);
+    }
+
+    private Task Reconnecting(Exception? arg)
+    {
+        ConnectionState?.Invoke(false);
+        return Task.CompletedTask;
+    }
+
+    private Task Reconnected(string? arg)
+    {
+        ConnectionState?.Invoke(true);
+        return Task.CompletedTask;
+    }
+
+    private async Task InitAsync()
+    {
+        await _connection.StartAsync();
+        await _connection.SendAsync("JoinGame", _gameId);
     }
 }

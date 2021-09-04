@@ -40,24 +40,43 @@ public class FieldGeometry
         var ownedFields = _fields.Where(x => x.OwnerId == ownerId);
 
         var neighborMap = ownedFields.Aggregate(
-                new Dictionary<string, IReadOnlyList<string>>(),
-                (aggregate, field) =>
-                {
-                    var otherFields = ownedFields.Where(x => x.Id != field.Id);
+            new Dictionary<string, IReadOnlyList<string>>(),
+            (aggregate, field) =>
+            {
+                aggregate[field.Id] = ownedFields
+                    .Where(otherField => AreNeighboringFields(field.Id, otherField.Id))
+                    .Select(otherField => otherField.Id)
+                    .Append(field.Id)
+                    .ToList();
 
-                    aggregate[field.Id] = otherFields
-                        .Where(otherField => AreNeighboringFields(field.Id, otherField.Id))
-                        .Select(otherField => otherField.Id)
+                return aggregate;
+            });
+
+        var gotBigger = false;
+        do
+        {
+            gotBigger = false;
+
+            neighborMap = neighborMap.Aggregate(
+                new Dictionary<string, IReadOnlyList<string>>(),
+                (aggregate, data) =>
+                {
+                    aggregate[data.Key] = data.Value
+                        .SelectMany(field => neighborMap[field])
+                        .Concat(data.Value)
+                        .Distinct()
                         .ToList();
+
+                    gotBigger = gotBigger || data.Value.Count < aggregate[data.Key].Count;
 
                     return aggregate;
                 });
+        }
+        while (gotBigger);
 
-        return 1 + neighborMap
-            .Keys
-            .Select(field => CountNumberOfNeighbors(field, Enumerable.Empty<string>(), neighborMap))
-            .OrderByDescending(x => x)
-            .FirstOrDefault();
+        return neighborMap.Values
+            .OrderByDescending(x => x.Count)
+            .FirstOrDefault()?.Count ?? 0;
     }
 
     public static IEnumerable<Coordinate> GetNeighboringCoordinates(Coordinate center)
@@ -82,12 +101,19 @@ public class FieldGeometry
         }
     }
 
-    private int CountNumberOfNeighbors(
-        string fieldId,
-        IEnumerable<string> fieldsIncludedInCount,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> map)
+    public static List<Coordinate> GetCircleAroundCoordinate(Coordinate center, int radius)
     {
-        var neighbors = map[fieldId].Where(field => !fieldsIncludedInCount.Contains(field)).ToArray();
-        return neighbors.Length + neighbors.Sum(neighbor => CountNumberOfNeighbors(neighbor, fieldsIncludedInCount.Append(fieldId), map));
+        var coordinates = new List<Coordinate>
+        {
+            center
+        };
+
+        if (radius > 0)
+        {
+            var neighbors = GetNeighboringCoordinates(center);
+            coordinates.AddRange(neighbors.SelectMany(neighbor => GetCircleAroundCoordinate(neighbor, radius - 1)));
+        }
+
+        return coordinates.Distinct().ToList();
     }
 }

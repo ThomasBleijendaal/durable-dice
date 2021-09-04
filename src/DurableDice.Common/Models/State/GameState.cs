@@ -17,10 +17,10 @@ public class GameState
     public string? ActivePlayerId { get; set; }
 
     [JsonProperty]
-    public string? OwnerId { get; set; }
+    public MatchState State { get; set; }
 
     [JsonProperty]
-    public MatchState State { get; set; }
+    public Attack? PreviousAttack { get; set; }
 
     private FieldGeometry? _geomertry;
 
@@ -29,8 +29,13 @@ public class GameState
         get => _geomertry ??= new FieldGeometry(Fields);
     }
 
-    public Player ActivePlayer 
+    public Player ActivePlayer
         => Players.First(x => x.Id == ActivePlayerId);
+
+    public Player? Winner
+        => Fields.GroupBy(x => x.OwnerId).Count() == 1
+            ? Players.First(x => x.Id == Fields.First().OwnerId)
+            : null;
 
     public IEnumerable<Field> ActivePlayerFields
         => Fields.Where(x => x.OwnerId == ActivePlayerId);
@@ -40,4 +45,10 @@ public class GameState
 
     public int PlayerFieldCount(Player player) 
         => Fields.Count(x => x.OwnerId == player.Id);
+
+    public bool PlayerIsDead(string playerId)
+        => !Fields.Any(x => x.OwnerId == playerId);
+
+    public int PlayerIndex(string playerId)
+        => Players.FindIndex(x => x.Id == playerId);
 }
