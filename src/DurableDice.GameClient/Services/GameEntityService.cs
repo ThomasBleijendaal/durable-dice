@@ -15,7 +15,7 @@ public class GameEntityService : IGameEntity
     public GameEntityService(string gameId, string baseUrl)
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl($"{baseUrl}/api")
+            .WithUrl(baseUrl)
             .Build();
 
         _connection.On<GameState>("Broadcast", (newState) => NewStateReceived?.Invoke(newState));

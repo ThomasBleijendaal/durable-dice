@@ -1,33 +1,37 @@
 {
   "$schema": "http://json.schemastore.org/proxies",
   "proxies": {
-    "indexproxy": {
+    "index": {
       "matchCondition": {
         "methods": [ "GET", "OPTIONS" ],
         "route": "/"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/index.html"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/index.html",
+      "debug": true
     },
-    "contentproxy": {
+    "content": {
       "matchCondition": {
         "methods": [ "GET", "OPTIONS" ],
         "route": "/_content/{*asset}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/_content/{asset}"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/_content/{asset}",
+      "debug": true
     },
-    "frameworkproxy": {
+    "framework": {
       "matchCondition": {
         "methods": [ "GET" ],
         "route": "/_framework/{*asset}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/_framework/{asset}"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/_framework/{asset}",
+      "debug": true
     },
     "favicon": {
       "matchCondition": {
         "methods": [ "GET" ],
         "route": "/favicon.ico"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/favicon.ico"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/favicon.ico",
+      "debug": true
     }
   }
 }
