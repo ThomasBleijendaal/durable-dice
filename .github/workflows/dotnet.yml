@@ -25,8 +25,8 @@ jobs:
       run: |
         pushd './src'
         dotnet build
-        dotnet publish --configuration Release --output ./client-publish ./src/DurableDice.GameClient/DurableDice.GameClient.csproj
-        dotnet publish --configuration Release --output ./function-publish ./src/DurableDice.Functions/DurableDice.Functions.csproj
+        dotnet publish --configuration Release --output ./client-publish ./DurableDice.GameClient/DurableDice.GameClient.csproj
+        dotnet publish --configuration Release --output ./function-publish ./DurableDice.Functions/DurableDice.Functions.csproj
         popd
     - name: Azure Login
       uses: azure/login@v1
