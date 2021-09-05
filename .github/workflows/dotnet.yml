@@ -46,4 +46,4 @@ jobs:
       uses: Azure/functions-action@v1.3.1
       with:
         app-name: durabledice
-        package: ./src/function-publish/output
+        package: ./src/function-publish
