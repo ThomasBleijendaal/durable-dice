@@ -1,5 +1,7 @@
 param functionAppName string = 'durabledice'
 
+var https = 'https://'
+
 resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: 'durabledice'
   location: resourceGroup().location
@@ -126,16 +128,12 @@ resource functionapp 'Microsoft.Web/sites@2021-01-15' = {
     name: 'appsettings'
     properties: {
       AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
-      AzureSignalRConnectionString: 'Endpoint=https://${signalr.name}.service.signalr.net;AccessKey=${signalr.listKeys().primaryKey.value};Version=1.0;'
+      AzureSignalRConnectionString: 'Endpoint=${https}${signalr.name}.service.signalr.net;AccessKey=${signalr.listKeys().primaryKey.value};Version=1.0;'
       AzureSignalRServiceTransportType: 'Transient'
       FUNCTIONS_EXTENSION_VERSION: '~3'
       WEBSITE_RUN_FROM_PACKAGE: '1'
       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       WEBSITE_CONTENTSHARE: storage.name
     }
-    dependsOn:[
-      storage
-      signalr
-    ]
   }
 }
