@@ -16,10 +16,12 @@ jobs:
       with:
         dotnet-version: '6.0'
         include-prerelease: True
-    - name: Restore dependencies
-      run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      shell: bash
+      run: |
+        pushd './src'
+        dotnet build
+        popd
     - name: Azure Login
       uses: azure/login@v1
       with:
