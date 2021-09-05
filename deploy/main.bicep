@@ -1,7 +1,5 @@
 param functionAppName string = 'durabledice'
 
-var https = 'https://'
-
 resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: 'durabledice'
   location: resourceGroup().location
@@ -117,6 +115,7 @@ resource functionapp 'Microsoft.Web/sites@2021-01-15' = {
   properties: {
     serverFarmId: hostingplan.id
     siteConfig: {
+      netFrameworkVersion: 'v6.0'
       cors: {
         allowedOrigins: [
           '*' // TODO: tune this down
@@ -131,6 +130,7 @@ resource functionapp 'Microsoft.Web/sites@2021-01-15' = {
       AzureSignalRConnectionString: signalr.listKeys().primaryConnectionString
       AzureSignalRServiceTransportType: 'Transient'
       FUNCTIONS_EXTENSION_VERSION: '~4'
+      FUNCTIONS_WORKER_RUNTIME: 'dotnet'
       WEBSITE_RUN_FROM_PACKAGE: '1'
       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       WEBSITE_CONTENTSHARE: storage.name
