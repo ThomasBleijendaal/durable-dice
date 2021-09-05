@@ -25,6 +25,8 @@ jobs:
       run: |
         pushd './src'
         dotnet build
+        dotnet publish --configuration Release --output ./client-publish ./src/DurableDice.GameClient/DurableDice.GameClient.csproj
+        dotnet publish --configuration Release --output ./function-publish ./src/DurableDice.Functions/DurableDice.Functions.csproj
         popd
     - name: Azure Login
       uses: azure/login@v1
@@ -39,9 +41,9 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
-          az storage blob upload-batch -d 'site' --account-name durabledice -s ./src/DurableDice/DurableDice.GameClient/publish/wwwroot
+          az storage blob upload-batch -d 'site' --account-name durabledice -s ./src/client-publish/wwwroot
     - name: Publish Function App
       uses: Azure/functions-action@v1.3.1
       with:
         app-name: durabledice
-        package: ./src/DurableDice/DurableDice.Functions/output
+        package: ./src/function-publish/output
