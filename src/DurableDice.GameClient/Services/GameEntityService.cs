@@ -12,10 +12,10 @@ public class GameEntityService : IGameEntity
     private readonly Task _init;
     private readonly string _gameId;
 
-    public GameEntityService(string gameId)
+    public GameEntityService(string gameId, string baseUrl)
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:7071/api")
+            .WithUrl($"{baseUrl}/api")
             .Build();
 
         _connection.On<GameState>("Broadcast", (newState) => NewStateReceived?.Invoke(newState));

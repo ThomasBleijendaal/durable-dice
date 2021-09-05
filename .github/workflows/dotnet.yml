@@ -14,7 +14,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 6.0
+        include-prerelease: True
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -23,6 +24,11 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Deploy bicep
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az deployment group create -g DurableDice -f ./src/deploy/main.bicep
     - name: Upload Static site
       uses: azure/CLI@v1
       with:

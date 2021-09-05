@@ -181,7 +181,7 @@ else if (_gameState != null)
 			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
 		}
 
-		var gameEntityService = new GameEntityService(GameId);
+		var gameEntityService = new GameEntityService(GameId, navManager.BaseUri.Contains("localhost") ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
 		gameEntityService.NewStateReceived += NewState;
 		gameEntityService.ConnectionState += ConnectionState;
 

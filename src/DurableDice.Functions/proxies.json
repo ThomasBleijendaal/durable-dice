@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json.schemastore.org/proxies",
+  "proxies": {
+    "indexproxy": {
+      "matchCondition": {
+        "methods": [ "GET", "OPTIONS" ],
+        "route": "/"
+      },
+      "backendUri": "https://durabledice.blob.core.windows.net/site/index.html"
+    },
+    "contentproxy": {
+      "matchCondition": {
+        "methods": [ "GET", "OPTIONS" ],
+        "route": "/_content/{*asset}"
+      },
+      "backendUri": "https://durabledice.blob.core.windows.net/site/_content/{asset}"
+    },
+    "frameworkproxy": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": "/_framework/{*asset}"
+      },
+      "backendUri": "https://durabledice.blob.core.windows.net/_framework/{asset}"
+    },
+    "favicon": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": "/favicon.ico"
+      },
+      "backendUri": "https://durabledice.blob.core.windows.net/favicon.ico"
+    }
+  }
+}
