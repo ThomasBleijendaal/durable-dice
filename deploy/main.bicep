@@ -130,7 +130,8 @@ resource functionapp 'Microsoft.Web/sites@2021-01-15' = {
       AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       AzureSignalRConnectionString: signalr.listKeys().primaryConnectionString
       AzureSignalRServiceTransportType: 'Transient'
-      FUNCTIONS_EXTENSION_VERSION: '~3'
+      FUNCTIONS_EXTENSION_VERSION: '~4'
+      WEBSITE_RUN_FROM_PACKAGE: '1'
       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       WEBSITE_CONTENTSHARE: storage.name
     }

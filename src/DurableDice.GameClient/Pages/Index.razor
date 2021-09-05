@@ -20,6 +20,10 @@
 	<input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
 	<button @onclick="JoinAsync">Join</button>
 }
+else if (_gameState == null) 
+{
+	<p>Loading..</p>
+}
 else if (_gameState != null)
 {
 	<div class="players">

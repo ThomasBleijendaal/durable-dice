@@ -76,7 +76,10 @@ public class GameEntity : GameState, IGameEntity
 
         fromField.DiceCount = 1;
 
-        Players[PlayerIndex(fromField.OwnerId)].ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(fromField.OwnerId);
+        foreach (var player in Players)
+        {
+            player.ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(player.Id);
+        }
 
         await DistributeStateAsync();
     }
