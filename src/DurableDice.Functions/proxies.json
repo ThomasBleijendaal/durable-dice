@@ -20,14 +20,14 @@
         "methods": [ "GET" ],
         "route": "/_framework/{*asset}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/_framework/{asset}"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/_framework/{asset}"
     },
     "favicon": {
       "matchCondition": {
         "methods": [ "GET" ],
         "route": "/favicon.ico"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/favicon.ico"
+      "backendUri": "https://durabledice.blob.core.windows.net/site/favicon.ico"
     }
   }
 }
