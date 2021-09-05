@@ -41,7 +41,7 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
-          az storage blob upload-batch --auth-mode login -d 'site' --account-name durabledice -s ./src/client-publish/wwwroot
+          az storage blob upload-batch -d 'site' --account-name durabledice -s ./src/client-publish/wwwroot
     - name: Publish Function App
       uses: Azure/functions-action@v1.3.1
       with:
