@@ -66,72 +66,128 @@ button {
     background-color: #ca5010;
     border-color: #ca5010;
 }
+
 .field-hover.player-0, .field-hover.player-0 * {
     background-color: #ec7232;
     border-color: #ec7232;
+    opacity: 1;
 }
 
 .player-1, .player-1 * {
     background-color: #4f6bed;
     border-color: #4f6bed;
 }
+
 .field-hover.player-1, .field-hover.player-1 * {
     background-color: #6f8dff;
     border-color: #6f8dff;
+    opacity: 1;
 }
 
 .player-2, .player-2 * {
     background-color: #498205;
     border-color: #498205;
 }
+
 .field-hover.player-2, .field-hover.player-2 * {
     background-color: #6ba427;
     border-color: #6ba427;
+    opacity: 1;
 }
 
 .player-3, .player-3 * {
     background-color: #881798;
     border-color: #881798;
 }
+
 .field-hover.player-3, .field-hover.player-3 * {
     background-color: #aa39ba;
     border-color: #aa39ba;
+    opacity: 1;
 }
 
 .player-4, .player-4 * {
     background-color: #00b294;
     border-color: #00b294;
 }
+
 .field-hover.player-4, .field-hover.player-4 * {
     background-color: #22d4b6;
     border-color: #22d4b6;
+    opacity: 1;
 }
 
 .player-5, .player-5 * {
     background-color: #ffc83d;
     border-color: #ffc83d;
 }
+
 .field-hover.player-5, .field-hover.player-5 * {
     background-color #ffea5f;
     border-color: #ffea5f;
+    opacity: 1;
 }
 
 .player-6, .player-6 * {
     background-color: #e3008c;
     border-color: #e3008c;
 }
+
 .field-hover.player-6, .field-hover.player-6 * {
     background-color: #f522ae;
     border-color: #f522ae;
+    opacity: 1;
 }
 
 .player-7, .player-7 * {
     background-color: #986f0b;
     border-color: #986f0b;
 }
+
 .field-hover.player-7, .field-hover.player-7 * {
     background-color: #ba8f2d;
     border-color: #ba8f2d;
+    opacity: 1;
+}
+
+.mod-0, .mod-0 * {
+    opacity: 1;
+}
+
+.mod-1, .mod-1 * {
+    opacity: 0.95;
+}
+
+.mod-2, .mod-2 * {
+    opacity: 0.825;
+}
+
+.mod-3, .mod-3 * {
+    opacity: 0.85;
+}
+
+.mod-4, .mod-4 * {
+    opacity: 0.80;
+}
+
+.mod-5, .mod-5 * {
+    opacity: 0.925;
+}
+
+.mod-6, .mod-6 * {
+    opacity: 0.875;
+}
+
+.mod-7, .mod-7 * {
+    opacity: 0.90;
+}
+
+.mod-8, .mod-8 * {
+    opacity: 0.775;
+}
+
+.mod-9, .mod-9 * {
+    opacity: 0.975;
 }
 
 .buttons {
@@ -169,6 +225,7 @@ button {
     background-color: #fff !important;
     border-color: #fff;
     z-index: 100000000000;
+    opacity: 1;
 }
 
 .label {

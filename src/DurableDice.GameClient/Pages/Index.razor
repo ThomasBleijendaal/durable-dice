@@ -82,7 +82,8 @@ else if (_gameState != null)
 			@foreach (var field in _gameState.Fields)
 			{
 				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
-				var className = $"hexagon player-{ownerIndex}";
+				var fieldModifier = field.Id[^1];
+				var className = $"hexagon player-{ownerIndex} mod-{fieldModifier}";
 
 				if (_playerId == field.OwnerId)
 				{
@@ -168,6 +169,8 @@ else if (_gameState != null)
 
 	protected override void OnInitialized()
 	{
+		var localStoragePlayerId = "";
+
 		if (string.IsNullOrEmpty(GameId) || !Guid.TryParse(GameId, out _))
 		{
 			GameId = Guid.NewGuid().ToString();
@@ -175,17 +178,22 @@ else if (_gameState != null)
 		}
 		else
 		{
-			_playerId = localStorage.GetItem<string>($"playerId-{GameId}");
+			localStoragePlayerId = localStorage.GetItem<string>($"playerId-{GameId}");
+			_playerId = localStoragePlayerId;
 			_playerName = _playerId;
 		}
 
-		if (string.IsNullOrEmpty(_playerId))
+		if (string.IsNullOrEmpty(_playerId) || string.IsNullOrEmpty(localStoragePlayerId))
 		{
 			_playerId = Guid.NewGuid().ToString();
 			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
+
+			Console.WriteLine("Saving playerId");
 		}
 
-		var gameEntityService = new GameEntityService(GameId, navManager.BaseUri.Contains("localhost") ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
+		Console.WriteLine($"Joined game '{GameId}' as player '{_playerId}' -- (local storage player '{localStoragePlayerId}')");
+
+		var gameEntityService = new GameEntityService(GameId, (false && navManager.BaseUri.Contains("localhost")) ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
 		gameEntityService.NewStateReceived += NewState;
 		gameEntityService.ConnectionState += ConnectionState;
 
@@ -251,7 +259,6 @@ else if (_gameState != null)
 		StateHasChanged();
 	}
 
-	[Obsolete("Move to css")]
 	private async Task FieldHover(Field field)
 	{
 		if (field.OwnerId == _playerId &&
@@ -271,7 +278,6 @@ else if (_gameState != null)
 		}
 	}
 
-	[Obsolete("Move to css")]
 	private async Task FieldLeave()
 	{
 		_hoveringFieldId = "";
