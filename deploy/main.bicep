@@ -1,4 +1,5 @@
 param functionAppName string = 'durabledice'
+param functionAppKey string 
 
 resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: 'durabledice'
@@ -96,7 +97,7 @@ resource signalr 'Microsoft.SignalRService/signalR@2021-06-01-preview' = {
           hubPattern: '*'
           categoryPattern: '*'
           eventPattern: '*'
-          urlTemplate: 'https://${functionAppName}.azurewebsites.net/runtime/webhooks/signalr'
+          urlTemplate: 'https://${functionAppName}.azurewebsites.net/runtime/webhooks/signalr?code=${functionAppKey}'
         }
       ]
     }

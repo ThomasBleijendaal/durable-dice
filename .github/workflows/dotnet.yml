@@ -36,7 +36,7 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
-          az deployment group create -g DurableDice -f ./deploy/main.bicep
+          az deployment group create -g DurableDice -f ./deploy/main.bicep -p functionAppKey=${{ secrets.FUNCTION_APP_KEY }}
     - name: Upload Static site
       uses: azure/CLI@v1
       with:
