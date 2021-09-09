@@ -43,7 +43,7 @@ else if (_gameState != null)
 			{
 				className += " player-dead";
 			}
-			if (!player.Ready)
+			if (!player.IsReady)
 			{
 				className += " player-not-ready";
 			}
@@ -57,7 +57,10 @@ else if (_gameState != null)
 	if (!_gameState.Fields.Any())
 	{
 		<div class="buttons">
-			<button @onclick="ReadyAsync">Ready</button>
+			@if (!_gameState.Player(_playerId).IsReady)
+			{
+				<button @onclick="ReadyAsync">Ready</button>
+			}
 		</div>
 	}
 
@@ -80,6 +83,8 @@ else if (_gameState != null)
 			{
 				<p>Please wait for your turn.</p>
 			}
+
+			<p><button @onclick="HackServerAsync">hack the server</button> <button @onclick="HackPlayerAsync">hack the active player</button></p>
 		</div>
 
 		<div class="fields">
@@ -250,6 +255,25 @@ else if (_gameState != null)
 
 	private async Task ReadyAsync() => await _gameEntity.ReadyAsync(_playerId);
 	private async Task EndRoundAsync() => await _gameEntity.EndRoundAsync(_playerId);
+	private async Task HackServerAsync()
+	{
+		var type = typeof(GameEntityService);
+
+		var fields = type.GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+		var connectionField = fields.First(x => x.Name == "_connection");
+
+		var connection = (HubConnection)connectionField.GetValue(_gameEntity);
+
+		_gameState.Fields.ForEach(x => x.OwnerId = _playerId);
+
+		await connection.SendAsync("Broadcast", _gameState);
+	}
+
+	private async Task HackPlayerAsync()
+	{
+		await _gameEntity.EndRoundAsync(_gameState.ActivePlayerId);
+	}
 
 	private async Task FieldClickAsync(Field field)
 	{
@@ -309,7 +333,7 @@ else if (_gameState != null)
 			case < 0: return "came short against";
 			case 0: return "did not have enough for";
 			case < 5: return "barely won of";
-			case < 10: return "bullied";
+			case < 10: return "defeated";
 			case < 15: return "destroyed";
 			default: return "obliterated";
 		};

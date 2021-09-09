@@ -130,9 +130,9 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task ReadyAsync(string playerId)
     {
-        Players.First(x => x.Id == playerId).Ready = true;
+        Players.First(x => x.Id == playerId).IsReady = true;
 
-        if (Players.Count > 1 && Players.All(x => x.Ready))
+        if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
             ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
 
@@ -167,7 +167,7 @@ public class GameEntity : GameState, IGameEntity
         var newIndex = Players.FindIndex(x => x.Id == playerId) + 1;
 
         ActivePlayerId = newIndex == Players.Count
-            ? Players[0].Id
+            ? Players[0].Id // TODO: if player 0 is dead this fails
             : Players
                 .Select((player, index) => (player, index))
                 .Where(x => PlayerFieldCount(x.player) > 0)
