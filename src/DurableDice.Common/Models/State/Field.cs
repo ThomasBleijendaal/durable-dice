@@ -15,6 +15,9 @@ public class Field
     public int DiceCount { get; set; }
 
     [JsonProperty]
+    public int DiceAdded { get; set; }
+
+    [JsonProperty]
     public List<Coordinate> Coordinates { get; set; } = new List<Coordinate>();
 
     [JsonProperty]

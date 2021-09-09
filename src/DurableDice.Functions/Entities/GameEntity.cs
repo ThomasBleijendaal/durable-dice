@@ -32,6 +32,11 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
+        if (Players.Count == 8)
+        {
+            return;
+        }
+
         Players.Add(new Player
         {
             Id = command.PlayerId,
@@ -43,6 +48,8 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task AttackFieldAsync(AttackMoveCommand command)
     {
+        Fields.ForEach(x => x.DiceAdded = 0);
+
         var fromField = Fields.FirstOrDefault(x => x.Id == command.FromFieldId);
         var toField = Fields.FirstOrDefault(x => x.Id == command.ToFieldId);
 
@@ -53,7 +60,6 @@ public class GameEntity : GameState, IGameEntity
             fromField.DiceCount <= 1 ||
             !Geometry.AreNeighboringFields(fromField.Id, toField.Id))
         {
-            await DistributeStateAsync();
             return;
         }
 
@@ -63,12 +69,15 @@ public class GameEntity : GameState, IGameEntity
         PreviousAttack = new Attack
         {
             AttackerId = fromField.OwnerId,
+            AttackingFieldId = command.FromFieldId,
             AttackingDiceCount = attackThrow,
             DefenderId = toField.OwnerId,
-            DefendingDiceCount = defendThrow
+            DefendingFieldId = command.ToFieldId,
+            DefendingDiceCount = defendThrow,
+            IsSuccessful = attackThrow > defendThrow
         };
 
-        if (attackThrow > defendThrow)
+        if (PreviousAttack.IsSuccessful)
         {
             toField.DiceCount = fromField.DiceCount - 1;
             toField.OwnerId = fromField.OwnerId;
@@ -86,6 +95,8 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task EndRoundAsync(string playerId)
     {
+        Fields.ForEach(x => x.DiceAdded = 0);
+
         if (ActivePlayerId == playerId)
         {
             var diceBuffer = Geometry.GetLargestContinuousFieldBlock(playerId) + ActivePlayer.DiceBuffer;
@@ -184,6 +195,7 @@ public class GameEntity : GameState, IGameEntity
             {
                 var diceTaken = _random.Next(0, Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
 
+                field.DiceAdded = diceTaken;
                 field.DiceCount += diceTaken;
 
                 diceBuffer -= diceTaken;

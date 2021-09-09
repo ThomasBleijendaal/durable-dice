@@ -20,7 +20,7 @@
 	<input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
 	<button @onclick="JoinAsync">Join</button>
 }
-else if (_gameState == null) 
+else if (_gameState == null)
 {
 	<p>Loading..</p>
 }
@@ -76,62 +76,82 @@ else if (_gameState != null)
 			{
 				<p>It's your turn! Attack your neighbor or <button @onclick="EndRoundAsync">end round</button></p>
 			}
+			else
+			{
+				<p>Please wait for your turn.</p>
+			}
 		</div>
 
 		<div class="fields">
-			@foreach (var field in _gameState.Fields)
+			@foreach (var (field, index) in _fields)
 			{
 				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
 				var fieldModifier = field.Id[^1];
-				var className = $"hexagon player-{ownerIndex} mod-{fieldModifier}";
+				var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
+				var modifierClassName = "modifier";
 
-				if (_playerId == field.OwnerId)
+				if (_gameState.ActivePlayerId == _playerId)
 				{
-					className += " field-owned";
+					if (_playerId == field.OwnerId && field.DiceCount > 1 ||
+					(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+					{
+						className += " field-hoverable";
+					}
+
+					if (field.Id == _fromFieldId)
+					{
+						modifierClassName += " mod-attack";
+					}
 				}
 
-				if (field.Id == _hoveringFieldId)
+				if (field.Id != _fromFieldId)
 				{
-					className += _fromFieldId == ""
-						? (field.DiceCount == 1 
-							? " field-hover field-hover-not-allowed" 
-							: " field-hover")
-						: (_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id) && field.OwnerId != _playerId) 
-							? " field-hover field-target-hover" 
-							: "";
-				}
+					if (_gameState.PreviousAttack?.IsSuccessful == true && field.Id == _gameState.PreviousAttack?.DefendingFieldId)
+					{
+						modifierClassName += " mod-attacking-success";
+					}
+					else if (_gameState.PreviousAttack?.IsSuccessful == false && field.Id == _gameState.PreviousAttack?.AttackingFieldId)
+					{
+						modifierClassName += " mod-defending-success";
+					}
 
-				if (field.Id == _fromFieldId)
-				{
-					className += " field-attack";
+					if (field.DiceAdded > 0)
+					{
+						modifierClassName += $" mod-{field.DiceAdded}-dice-added";
+					}
 				}
 
 				@foreach (var coordinate in field.Coordinates)
 				{
 					var (left, top) = Position(coordinate);
 
-					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
+					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
 						<div class="left"></div>
 						<div class="middle"></div>
 						<div class="right"></div>
+						<div class=@modifierClassName>
+							<div class="left"></div>
+							<div class="middle"></div>
+							<div class="right"></div>
+						</div>
 					</div>
 				}
 
 				{
 					var (left, top) = Position(field.Center);
 
-					<div class="label" style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) @onmouseover=@(() => FieldHover(field)) @onmouseout=@(() => FieldLeave())>
+					<div class="label" style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
 						@field.DiceCount
 					</div>
 				}
 			}
 		</div>
 
-		@if (_gameState.PreviousAttack is Attack attack) 
+		@if (_gameState.PreviousAttack is Attack attack)
 		{
 			<div class="attack">
 				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">@attack.AttackingDiceCount</div>
-				<div class="attacked">attacked</div>
+				<div class="attacked">@DescribeAttack(attack)</div>
 				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">@attack.DefendingDiceCount</div>
 			</div>
 		}
@@ -167,6 +187,9 @@ else if (_gameState != null)
 	private IEnumerable<(Player player, int index)> _players
 		=> _gameState?.Players.Select((player, index) => (player, index)) ?? throw new Exception();
 
+	private IEnumerable<(Field field, int index)> _fields
+		=> _gameState?.Fields.Select((field, index) => (field, index)) ?? throw new Exception();
+
 	protected override void OnInitialized()
 	{
 		var localStoragePlayerId = "";
@@ -183,17 +206,9 @@ else if (_gameState != null)
 			_playerName = _playerId;
 		}
 
-		if (string.IsNullOrEmpty(_playerId) || string.IsNullOrEmpty(localStoragePlayerId))
-		{
-			_playerId = Guid.NewGuid().ToString();
-			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
-
-			Console.WriteLine("Saving playerId");
-		}
-
 		Console.WriteLine($"Joined game '{GameId}' as player '{_playerId}' -- (local storage player '{localStoragePlayerId}')");
 
-		var gameEntityService = new GameEntityService(GameId, (false && navManager.BaseUri.Contains("localhost")) ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
+		var gameEntityService = new GameEntityService(GameId, (navManager.BaseUri.Contains("localhost")) ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
 		gameEntityService.NewStateReceived += NewState;
 		gameEntityService.ConnectionState += ConnectionState;
 
@@ -224,6 +239,10 @@ else if (_gameState != null)
 		if (!string.IsNullOrWhiteSpace(_newPlayerName))
 		{
 			_playerName = _newPlayerName;
+			_playerId = Guid.NewGuid().ToString();
+			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
+
+			Console.WriteLine("Saving playerId");
 
 			await _gameEntity.AddPlayerAsync(new AddPlayerCommand(_playerId, _playerName));
 		}
@@ -259,32 +278,6 @@ else if (_gameState != null)
 		StateHasChanged();
 	}
 
-	private async Task FieldHover(Field field)
-	{
-		if (field.OwnerId == _playerId &&
-			_gameState.ActivePlayerId == _playerId)
-		{
-			_hoveringFieldId = field.Id;
-
-			StateHasChanged();
-		}
-		else if (!string.IsNullOrWhiteSpace(_fromFieldId) &&
-			field.OwnerId != _playerId &&
-			_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
-		{
-			_hoveringFieldId = field.Id;
-
-			StateHasChanged();
-		}
-	}
-
-	private async Task FieldLeave()
-	{
-		_hoveringFieldId = "";
-
-		StateHasChanged();
-	}
-
 	public void Dispose()
 	{
 		if (_gameEntity is GameEntityService service)
@@ -303,5 +296,22 @@ else if (_gameState != null)
 			: coordinate.Y * 24;
 
 		return (left, top);
+	}
+
+	public string DescribeAttack(Attack attack)
+	{
+		var diceDelta = attack.AttackingDiceCount - attack.DefendingDiceCount;
+		switch (diceDelta)
+		{
+			case < -15: return "got owned by";
+			case < -10: return "never stood a change with";
+			case < -5: return "underestimated";
+			case < 0: return "came short against";
+			case 0: return "did not have enough for";
+			case < 5: return "barely won of";
+			case < 10: return "bullied";
+			case < 15: return "destroyed";
+			default: return "obliterated";
+		};
 	}
 }

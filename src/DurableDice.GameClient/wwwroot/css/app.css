@@ -62,133 +62,6 @@ button {
         opacity: .5;
     }
 
-.player-0, .player-0 * {
-    background-color: #ca5010;
-    border-color: #ca5010;
-}
-
-.field-hover.player-0, .field-hover.player-0 * {
-    background-color: #ec7232;
-    border-color: #ec7232;
-    opacity: 1;
-}
-
-.player-1, .player-1 * {
-    background-color: #4f6bed;
-    border-color: #4f6bed;
-}
-
-.field-hover.player-1, .field-hover.player-1 * {
-    background-color: #6f8dff;
-    border-color: #6f8dff;
-    opacity: 1;
-}
-
-.player-2, .player-2 * {
-    background-color: #498205;
-    border-color: #498205;
-}
-
-.field-hover.player-2, .field-hover.player-2 * {
-    background-color: #6ba427;
-    border-color: #6ba427;
-    opacity: 1;
-}
-
-.player-3, .player-3 * {
-    background-color: #881798;
-    border-color: #881798;
-}
-
-.field-hover.player-3, .field-hover.player-3 * {
-    background-color: #aa39ba;
-    border-color: #aa39ba;
-    opacity: 1;
-}
-
-.player-4, .player-4 * {
-    background-color: #00b294;
-    border-color: #00b294;
-}
-
-.field-hover.player-4, .field-hover.player-4 * {
-    background-color: #22d4b6;
-    border-color: #22d4b6;
-    opacity: 1;
-}
-
-.player-5, .player-5 * {
-    background-color: #ffc83d;
-    border-color: #ffc83d;
-}
-
-.field-hover.player-5, .field-hover.player-5 * {
-    background-color #ffea5f;
-    border-color: #ffea5f;
-    opacity: 1;
-}
-
-.player-6, .player-6 * {
-    background-color: #e3008c;
-    border-color: #e3008c;
-}
-
-.field-hover.player-6, .field-hover.player-6 * {
-    background-color: #f522ae;
-    border-color: #f522ae;
-    opacity: 1;
-}
-
-.player-7, .player-7 * {
-    background-color: #986f0b;
-    border-color: #986f0b;
-}
-
-.field-hover.player-7, .field-hover.player-7 * {
-    background-color: #ba8f2d;
-    border-color: #ba8f2d;
-    opacity: 1;
-}
-
-.mod-0, .mod-0 * {
-    opacity: 1;
-}
-
-.mod-1, .mod-1 * {
-    opacity: 0.95;
-}
-
-.mod-2, .mod-2 * {
-    opacity: 0.825;
-}
-
-.mod-3, .mod-3 * {
-    opacity: 0.85;
-}
-
-.mod-4, .mod-4 * {
-    opacity: 0.80;
-}
-
-.mod-5, .mod-5 * {
-    opacity: 0.925;
-}
-
-.mod-6, .mod-6 * {
-    opacity: 0.875;
-}
-
-.mod-7, .mod-7 * {
-    opacity: 0.90;
-}
-
-.mod-8, .mod-8 * {
-    opacity: 0.775;
-}
-
-.mod-9, .mod-9 * {
-    opacity: 0.975;
-}
 
 .buttons {
     margin: 1rem;
@@ -206,26 +79,7 @@ button {
     width: 100%;
     height: 600px;
     position: relative;
-}
-
-.field-owned {
-    cursor: pointer;
-}
-
-.field-hover-not-allowed {
-    cursor: not-allowed;
-}
-
-.field-target-hover {
-    cursor: crosshair;
-    z-index: 100000000000;
-}
-
-.field-attack * {
-    background-color: #fff !important;
-    border-color: #fff;
-    z-index: 100000000000;
-    opacity: 1;
+    cursor: default;
 }
 
 .label {
@@ -233,10 +87,8 @@ button {
     width: 26px;
     line-height: 23px;
     text-align: center;
-    z-index: 200000000000;
     font-weight: bold;
     font-size: 14px;
-    cursor: pointer;
 }
 
 .hexagon {
@@ -260,7 +112,7 @@ button {
         float: left;
         width: 14px;
         height: 23px;
-        border-bottom: 1px solid #252423;
+        border-bottom: 1px solid #252423 !important;
     }
 
     .hexagon .right {
@@ -272,6 +124,79 @@ button {
         border-bottom: 12px solid transparent !important;
         background-color: transparent !important;
     }
+
+    .hexagon .modifier {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 26px;
+        height: 26px;
+        background-color: transparent !important;
+    }
+
+        .hexagon .modifier * {
+        }
+
+        .hexagon .modifier .middle {
+            border-bottom: 0;
+        }
+
+.field-hoverable, .field-hoverable *, .field-hoverable .label {
+    cursor: pointer;
+}
+
+.modifier.mod-attack > * {
+    background-color: rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+.modifier.mod-attacking-success * {
+    background-color: rgba(0, 255, 0, 1);
+    border-color: rgba(0, 255, 0, 1);
+    animation: fade1 2s forwards;
+}
+
+.modifier.mod-defending-success * {
+    background-color: rgba(255, 0, 0, 1);
+    border-color: rgba(255, 0, 0, 1);
+    animation: fade2 2s forwards;
+}
+
+.modifier.mod-1-dice-added * {
+    background-color: rgba(255, 255, 0, 0.4);
+    border-color: rgba(255, 255, 0, 0.4);
+    animation: fade 2s forwards;
+}
+.modifier.mod-2-dice-added * {
+    background-color: rgba(255, 255, 0, 0.5);
+    border-color: rgba(255, 255, 0, 0.5);
+    animation: fade 2s forwards;
+}
+.modifier.mod-3-dice-added * {
+    background-color: rgba(255, 255, 0, 0.6);
+    border-color: rgba(255, 255, 0, 0.6);
+    animation: fade 2s forwards;
+}
+.modifier.mod-4-dice-added * {
+    background-color: rgba(255, 255, 0, 0.7);
+    border-color: rgba(255, 255, 0, 0.7);
+    animation: fade 2s forwards;
+}
+.modifier.mod-5-dice-added * {
+    background-color: rgba(255, 255, 0, 0.8);
+    border-color: rgba(255, 255, 0, 0.8);
+    animation: fade 2s forwards;
+}
+.modifier.mod-6-dice-added * {
+    background-color: rgba(255, 255, 0, 0.9);
+    border-color: rgba(255, 255, 0, 0.9);
+    animation: fade 2s forwards;
+}
+.modifier.mod-7-dice-added * {
+    background-color: rgba(255, 255, 0, 1);
+    border-color: rgba(255, 255, 0, 1);
+    animation: fade 2s forwards;
+}
 
 .attack {
     margin: 1rem;
@@ -299,3 +224,150 @@ button {
         line-height: 25px;
         color: #fff;
     }
+
+
+.player-0, .player-0 * {
+    background-color: #ca5010;
+    border-color: #ca5010;
+}
+
+.player-1, .player-1 * {
+    background-color: #4f6bed;
+    border-color: #4f6bed;
+}
+
+.player-2, .player-2 * {
+    background-color: #498205;
+    border-color: #498205;
+}
+
+.player-3, .player-3 * {
+    background-color: #881798;
+    border-color: #881798;
+}
+
+.player-4, .player-4 * {
+    background-color: #00b294;
+    border-color: #00b294;
+}
+
+.player-5, .player-5 * {
+    background-color: #ffc83d;
+    border-color: #ffc83d;
+}
+
+.player-6, .player-6 * {
+    background-color: #e3008c;
+    border-color: #e3008c;
+}
+
+.player-7, .player-7 * {
+    background-color: #986f0b;
+    border-color: #986f0b;
+}
+
+[data-hover="0"] .field-hoverable.field-0 .modifier *,
+[data-hover="1"] .field-hoverable.field-1 .modifier *,
+[data-hover="2"] .field-hoverable.field-2 .modifier *,
+[data-hover="3"] .field-hoverable.field-3 .modifier *,
+[data-hover="4"] .field-hoverable.field-4 .modifier *,
+[data-hover="5"] .field-hoverable.field-5 .modifier *,
+[data-hover="6"] .field-hoverable.field-6 .modifier *,
+[data-hover="7"] .field-hoverable.field-7 .modifier *,
+[data-hover="8"] .field-hoverable.field-8 .modifier *,
+[data-hover="9"] .field-hoverable.field-9 .modifier *,
+[data-hover="10"] .field-hoverable.field-10 .modifier *,
+[data-hover="11"] .field-hoverable.field-11 .modifier *,
+[data-hover="12"] .field-hoverable.field-12 .modifier *,
+[data-hover="13"] .field-hoverable.field-13 .modifier *,
+[data-hover="14"] .field-hoverable.field-14 .modifier *,
+[data-hover="15"] .field-hoverable.field-15 .modifier *,
+[data-hover="16"] .field-hoverable.field-16 .modifier *,
+[data-hover="17"] .field-hoverable.field-17 .modifier *,
+[data-hover="18"] .field-hoverable.field-18 .modifier *,
+[data-hover="19"] .field-hoverable.field-19 .modifier *,
+[data-hover="20"] .field-hoverable.field-20 .modifier *,
+[data-hover="21"] .field-hoverable.field-21 .modifier *,
+[data-hover="22"] .field-hoverable.field-22 .modifier *,
+[data-hover="23"] .field-hoverable.field-23 .modifier *,
+[data-hover="24"] .field-hoverable.field-24 .modifier *,
+[data-hover="25"] .field-hoverable.field-25 .modifier *,
+[data-hover="26"] .field-hoverable.field-26 .modifier *,
+[data-hover="27"] .field-hoverable.field-27 .modifier *,
+[data-hover="28"] .field-hoverable.field-28 .modifier *,
+[data-hover="29"] .field-hoverable.field-29 .modifier *,
+[data-hover="30"] .field-hoverable.field-30 .modifier *,
+[data-hover="31"] .field-hoverable.field-31 .modifier * {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.mod-0 > * {
+    filter: brightness(1.05);
+}
+
+.mod-1 > * {
+    filter: brightness(.95);
+}
+
+.mod-2 > * {
+    filter: brightness(1.15);
+}
+
+.mod-3 > * {
+    filter: brightness(.85);
+}
+
+.mod-4 > * {
+    filter: brightness(1.1);
+}
+
+.mod-5 > * {
+    filter: brightness(.9);
+}
+
+.mod-6 > * {
+    filter: brightness(1.075);
+}
+
+.mod-7 > * {
+    filter: brightness(.925);
+}
+
+.mod-8 > * {
+    filter: brightness(1.125);
+}
+
+.mod-9 > * {
+    filter: brightness(.875);
+}
+
+@keyframes fade {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes fade1 {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes fade2 {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
