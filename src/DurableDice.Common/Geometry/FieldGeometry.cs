@@ -116,4 +116,24 @@ public class FieldGeometry
 
         return coordinates.Distinct().ToList();
     }
+
+    public static List<Coordinate> GetShapeAroundCoordinate(Coordinate center, int size, IReadOnlyList<Coordinate> allowedCoordinates)
+    {
+        var coordinates = new List<Coordinate>
+        {
+            center
+        };
+
+        if (size > 0)
+        {
+            var neighbors = GetNeighboringCoordinates(center)
+                .Where(allowedCoordinates.Contains)
+                .OrderBy(x => Guid.NewGuid())
+                .Take(Random.Shared.Next(1, 3));
+
+            coordinates.AddRange(neighbors.SelectMany(neighbor => GetShapeAroundCoordinate(neighbor, size - 1, allowedCoordinates)));
+        }
+
+        return coordinates.Distinct().ToList();
+    }
 }

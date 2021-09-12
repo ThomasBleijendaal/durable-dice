@@ -58,8 +58,8 @@ public partial class Index
             {
                 Console.WriteLine("Saving playerId");
 
-                localStoragePlayerId = Guid.NewGuid().ToString();
-                LocalStorage.SetItem($"playerId-{GameId}", localStoragePlayerId);
+                _playerId = Guid.NewGuid().ToString();
+                LocalStorage.SetItem($"playerId-{GameId}", _playerId);
             }
             else
             {
@@ -145,7 +145,7 @@ public partial class Index
         {
             _fromFieldId = "";
         }
-        else if (field.OwnerId != _playerId)
+        else if (field.OwnerId != _playerId && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
         {
             _toFieldId = field.Id;
             await _gameEntity.AttackFieldAsync(new AttackMoveCommand(_playerId, _fromFieldId, field.Id));

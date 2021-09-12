@@ -54,7 +54,7 @@ else if (_gameState != null)
 		<div class="buttons">
 			@if (!_gameState.Player(_playerId).IsReady)
 			{
-				<button @onclick="ReadyAsync">Ready</button>
+				<button @onclick="ReadyAsync" class=@_buttonClassName>Ready</button>
 			}
 		</div>
 	}
@@ -87,22 +87,23 @@ else if (_gameState != null)
 				var fieldModifier = field.Id[^1];
 				var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
 				var modifierClassName = "modifier";
+				var labelClassName = "label";
 
 				if (_gameState.ActivePlayerId == _playerId)
 				{
 					if (_playerId == field.OwnerId && field.DiceCount > 1 ||
-					(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+						(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
 					{
-						className += " field-hoverable";
+						className += " field-attackable";
 					}
 
 					if (field.Id == _fromFieldId)
 					{
-						modifierClassName += " mod-attack";
+						labelClassName += " label-attack";
 					}
 					if (field.Id == _toFieldId)
 					{
-						modifierClassName += " mod-defend";
+						labelClassName += " label-defend";
 					}
 				}
 
@@ -142,7 +143,7 @@ else if (_gameState != null)
 				{
 					var (left, top) = Position(field.Center);
 
-					<div class="label" style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
+					<div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
 						@field.DiceCount
 					</div>
 				}

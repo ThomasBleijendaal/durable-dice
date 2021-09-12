@@ -108,11 +108,20 @@ button {
     font-size: 14px;
 }
 
+    .label.label-attack {
+        color: white;
+    }
+
+    .label.label-defend {
+        color: white;
+    }
+
 .hexagon {
     position: absolute;
     width: 26px;
     height: 24px;
     background-color: transparent !important;
+    cursor: not-allowed;
 }
 
     .hexagon .left {
@@ -162,15 +171,6 @@ button {
     cursor: pointer;
 }
 
-.modifier.mod-attack > * {
-    background-color: rgba(255, 255, 255, 1);
-    border-color: rgba(255, 255, 255, 1);
-}
-
-.modifier.mod-defend > * {
-    background-color: rgba(255, 255, 255, 1);
-    border-color: rgba(255, 255, 255, 1);
-}
 
 .modifier.mod-attacking-success * {
     background-color: rgba(0, 255, 0, 1);
@@ -302,40 +302,44 @@ button {
     border-color: #986f0b;
 }
 
-[data-hover="0"] .field-hoverable.field-0 .modifier *,
-[data-hover="1"] .field-hoverable.field-1 .modifier *,
-[data-hover="2"] .field-hoverable.field-2 .modifier *,
-[data-hover="3"] .field-hoverable.field-3 .modifier *,
-[data-hover="4"] .field-hoverable.field-4 .modifier *,
-[data-hover="5"] .field-hoverable.field-5 .modifier *,
-[data-hover="6"] .field-hoverable.field-6 .modifier *,
-[data-hover="7"] .field-hoverable.field-7 .modifier *,
-[data-hover="8"] .field-hoverable.field-8 .modifier *,
-[data-hover="9"] .field-hoverable.field-9 .modifier *,
-[data-hover="10"] .field-hoverable.field-10 .modifier *,
-[data-hover="11"] .field-hoverable.field-11 .modifier *,
-[data-hover="12"] .field-hoverable.field-12 .modifier *,
-[data-hover="13"] .field-hoverable.field-13 .modifier *,
-[data-hover="14"] .field-hoverable.field-14 .modifier *,
-[data-hover="15"] .field-hoverable.field-15 .modifier *,
-[data-hover="16"] .field-hoverable.field-16 .modifier *,
-[data-hover="17"] .field-hoverable.field-17 .modifier *,
-[data-hover="18"] .field-hoverable.field-18 .modifier *,
-[data-hover="19"] .field-hoverable.field-19 .modifier *,
-[data-hover="20"] .field-hoverable.field-20 .modifier *,
-[data-hover="21"] .field-hoverable.field-21 .modifier *,
-[data-hover="22"] .field-hoverable.field-22 .modifier *,
-[data-hover="23"] .field-hoverable.field-23 .modifier *,
-[data-hover="24"] .field-hoverable.field-24 .modifier *,
-[data-hover="25"] .field-hoverable.field-25 .modifier *,
-[data-hover="26"] .field-hoverable.field-26 .modifier *,
-[data-hover="27"] .field-hoverable.field-27 .modifier *,
-[data-hover="28"] .field-hoverable.field-28 .modifier *,
-[data-hover="29"] .field-hoverable.field-29 .modifier *,
-[data-hover="30"] .field-hoverable.field-30 .modifier *,
-[data-hover="31"] .field-hoverable.field-31 .modifier * {
+[data-hover="0"] .field-0 .modifier *,
+[data-hover="1"] .field-1 .modifier *,
+[data-hover="2"] .field-2 .modifier *,
+[data-hover="3"] .field-3 .modifier *,
+[data-hover="4"] .field-4 .modifier *,
+[data-hover="5"] .field-5 .modifier *,
+[data-hover="6"] .field-6 .modifier *,
+[data-hover="7"] .field-7 .modifier *,
+[data-hover="8"] .field-8 .modifier *,
+[data-hover="9"] .field-9 .modifier *,
+[data-hover="10"] .field-10 .modifier *,
+[data-hover="11"] .field-11 .modifier *,
+[data-hover="12"] .field-12 .modifier *,
+[data-hover="13"] .field-13 .modifier *,
+[data-hover="14"] .field-14 .modifier *,
+[data-hover="15"] .field-15 .modifier *,
+[data-hover="16"] .field-16 .modifier *,
+[data-hover="17"] .field-17 .modifier *,
+[data-hover="18"] .field-18 .modifier *,
+[data-hover="19"] .field-19 .modifier *,
+[data-hover="20"] .field-20 .modifier *,
+[data-hover="21"] .field-21 .modifier *,
+[data-hover="22"] .field-22 .modifier *,
+[data-hover="23"] .field-23 .modifier *,
+[data-hover="24"] .field-24 .modifier *,
+[data-hover="25"] .field-25 .modifier *,
+[data-hover="26"] .field-26 .modifier *,
+[data-hover="27"] .field-27 .modifier *,
+[data-hover="28"] .field-28 .modifier *,
+[data-hover="29"] .field-29 .modifier *,
+[data-hover="30"] .field-30 .modifier *,
+[data-hover="31"] .field-31 .modifier * {
     background-color: rgba(255, 255, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.4);
+}
+
+.field-attackable, field-attackable > * {
+    cursor: pointer !important;
 }
 
 .mod-0 > * {

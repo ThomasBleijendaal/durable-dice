@@ -7,8 +7,6 @@ public static class FieldGenerator
     private const int HorizontalCoordinates = 30;
     private const int VerticalCoordinates = 20;
 
-    private static readonly Random Random = new Random();
-
     public static List<Field> GenerateFields(IReadOnlyList<Player> players)
     {
         if (players.Count <= 1)
@@ -22,6 +20,7 @@ public static class FieldGenerator
         var coordinates = Enumerable.Range(0, VerticalCoordinates)
             .SelectMany(y => Enumerable.Range(0, HorizontalCoordinates).Select(x => new Coordinate(x, y)))
             .OrderBy(x => Guid.NewGuid())
+            .Skip((VerticalCoordinates / 3) * (HorizontalCoordinates / 3))
             .ToList();
 
         var playerFields = players
@@ -43,23 +42,21 @@ public static class FieldGenerator
         foreach (var field in playerFields)
         {
             Coordinate center;
-            int radius;
             if (first)
             {
                 center = coordinates.First();
-                radius = Random.Next(1, 4);
                 first = false;
             }
             else
             {
-                radius = Random.Next(1, 3);
-                center = Neighbors(allCoordinates, radius)
+                center = Neighbors(allCoordinates, 1)
                     .Intersect(coordinates)
                     .OrderBy(x => Guid.NewGuid())
                     .First();
             }
 
-            var block = FieldGeometry.GetCircleAroundCoordinate(center, radius);
+            var size = Random.Shared.Next(1, 6);
+            var block = FieldGeometry.GetShapeAroundCoordinate(center, size, coordinates);
             var allowedBlocks = block.Intersect(coordinates).ToList();
 
             field.Coordinates = allowedBlocks;
