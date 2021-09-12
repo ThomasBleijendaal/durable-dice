@@ -6,7 +6,7 @@
         "methods": [ "GET", "OPTIONS" ],
         "route": "/"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/",
+      "backendUri": "https://durabledice.z6.web.core.windows.net/",
       "debug": true
     },
     "gameid": {
@@ -14,7 +14,7 @@
         "methods": [ "GET" ],
         "route": "/{gameid}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/{gameid}",
+      "backendUri": "https://durabledice.z6.web.core.windows.net/{gameid}",
       "debug": true
     },
     "content": {
@@ -22,7 +22,7 @@
         "methods": [ "GET", "OPTIONS" ],
         "route": "/_content/{*asset}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/_content/{asset}",
+      "backendUri": "https://durabledice.z6.web.core.windows.net/site/_content/{asset}",
       "debug": true
     },
     "framework": {
@@ -30,7 +30,7 @@
         "methods": [ "GET" ],
         "route": "/_framework/{*asset}"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/_framework/{asset}",
+      "backendUri": "https://durabledice.z6.web.core.windows.net/site/_framework/{asset}",
       "debug": true
     },
     "favicon": {
@@ -38,7 +38,7 @@
         "methods": [ "GET" ],
         "route": "/favicon.ico"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/favicon.ico",
+      "backendUri": "https://durabledice.z6.web.core.windows.net/site/favicon.ico",
       "debug": true
     }
   }
