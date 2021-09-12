@@ -49,6 +49,12 @@ public class GameState
     public bool PlayerIsDead(string playerId)
         => !Fields.Any(x => x.OwnerId == playerId);
 
+    public Player Player(string playerId)
+        => Players.First(x => x.Id == playerId);
+
     public int PlayerIndex(string playerId)
         => Players.FindIndex(x => x.Id == playerId);
+
+    public int? WinnerIndex
+        => Winner != null ? PlayerIndex(Winner.Id) : default(int?);
 }

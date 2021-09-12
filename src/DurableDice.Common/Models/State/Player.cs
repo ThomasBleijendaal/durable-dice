@@ -18,5 +18,5 @@ public class Player
     public int ContinuousFieldCount { get; set; }
 
     [JsonProperty]
-    public bool Ready { get; set; }
+    public bool IsReady { get; set; }
 }

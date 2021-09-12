@@ -1,7 +1,9 @@
-﻿using DurableDice.Common.Abstractions;
+﻿using System.Security.Claims;
+using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
 using DurableDice.Functions.Entities;
+using DurableDice.Functions.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
@@ -20,14 +22,17 @@ public class GameHub : ServerlessHub
     {
         try
         {
-            // TODO: setup secret for authenticating requests
-            return Negotiate(
-                req.Headers.TryGetValue("x-ms-signalr-user-id", out var value) ? value : "");
+            if (req.Headers.TryGetValue("x-gameid", out var gameId) &&
+                req.Headers.TryGetValue("x-playerid", out var playerId))
+            {
+                return Negotiate(playerId, new[] { new Claim("gid", gameId) });
+            }
         }
         catch
         {
-            return null;
         }
+
+        return null;
     }
 
     [FunctionName(nameof(OnConnected))]
@@ -39,10 +44,11 @@ public class GameHub : ServerlessHub
     [FunctionName(nameof(JoinGame))]
     public async Task JoinGame(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
         [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr,
-        [DurableClient]IDurableEntityClient entityClient)
+        [DurableClient] IDurableEntityClient entityClient)
     {
+        var gameId = invocationContext.GetGameId();
+
         await Groups.AddToGroupAsync(invocationContext.ConnectionId, gameId);
 
         var entity = await entityClient.ReadEntityStateAsync<GameState>(new EntityId(nameof(GameEntity), gameId));
@@ -60,52 +66,44 @@ public class GameHub : ServerlessHub
     [FunctionName(nameof(AddPlayer))]
     public async Task AddPlayer(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
         AddPlayerCommand command,
-        [DurableClient] IDurableClient durableClient) 
+        [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
-            EntityId(gameId),
-            x => x.AddPlayerAsync(command));
+            EntityId(invocationContext.GetGameId()),
+            x => x.AddPlayerAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
     [FunctionName(nameof(Ready))]
     public async Task Ready(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
-        string playerId,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
-            EntityId(gameId),
-            x => x.ReadyAsync(playerId));
+            EntityId(invocationContext.GetGameId()),
+            x => x.ReadyAsync(invocationContext.GetPlayerId()));
 
     [FunctionName(nameof(AttackField))]
     public async Task AttackField(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
         AttackMoveCommand command,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
-            EntityId(gameId),
-            x => x.AttackFieldAsync(command));
+            EntityId(invocationContext.GetGameId()),
+            x => x.AttackFieldAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
     [FunctionName(nameof(EndRound))]
     public async Task EndRound(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
-        string playerId,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
-            EntityId(gameId),
-            x => x.EndRoundAsync(playerId));
+            EntityId(invocationContext.GetGameId()),
+            x => x.EndRoundAsync(invocationContext.GetPlayerId()));
 
     [FunctionName(nameof(RemovePlayer))]
     public async Task RemovePlayer(
         [SignalRTrigger] InvocationContext invocationContext,
-        string gameId,
-        string playerId,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
-            EntityId(gameId),
-            x => x.RemovePlayerAsync(playerId));
+            EntityId(invocationContext.GetGameId()),
+            x => x.RemovePlayerAsync(invocationContext.GetPlayerId()));
 
     [FunctionName(nameof(OnDisconnected))]
     public void OnDisconnected([SignalRTrigger] InvocationContext invocationContext)
