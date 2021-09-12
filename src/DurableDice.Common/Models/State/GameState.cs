@@ -54,4 +54,7 @@ public class GameState
 
     public int PlayerIndex(string playerId)
         => Players.FindIndex(x => x.Id == playerId);
+
+    public int? WinnerIndex
+        => Winner != null ? PlayerIndex(Winner.Id) : default(int?);
 }

@@ -48,8 +48,6 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task AttackFieldAsync(AttackMoveCommand command)
     {
-        Fields.ForEach(x => x.DiceAdded = 0);
-
         var fromField = Fields.FirstOrDefault(x => x.Id == command.FromFieldId);
         var toField = Fields.FirstOrDefault(x => x.Id == command.ToFieldId);
 
@@ -62,6 +60,8 @@ public class GameEntity : GameState, IGameEntity
         {
             return;
         }
+
+        Fields.ForEach(x => x.DiceAdded = 0);
 
         var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount);
         var defendThrow = DiceHelper.ThrowDice(toField.DiceCount);
@@ -85,20 +85,17 @@ public class GameEntity : GameState, IGameEntity
 
         fromField.DiceCount = 1;
 
-        foreach (var player in Players)
-        {
-            player.ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(player.Id);
-        }
+        CalculateContinuousFieldCountsForAllPlayers();
 
         await DistributeStateAsync();
     }
 
     public async Task EndRoundAsync(string playerId)
     {
-        Fields.ForEach(x => x.DiceAdded = 0);
-
         if (ActivePlayerId == playerId)
         {
+            Fields.ForEach(x => x.DiceAdded = 0);
+
             var diceBuffer = Geometry.GetLargestContinuousFieldBlock(playerId) + ActivePlayer.DiceBuffer;
 
             diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
@@ -144,6 +141,10 @@ public class GameEntity : GameState, IGameEntity
             {
                 AddNewDiceToPlayer(player.Id, fieldCountPerPlayer);
             }
+
+            CalculateContinuousFieldCountsForAllPlayers();
+
+            Fields.ForEach(x => x.DiceAdded = 0);
         }
 
         await DistributeStateAsync();
@@ -159,20 +160,21 @@ public class GameEntity : GameState, IGameEntity
 
     private void SelectNextActivePlayer(string playerId)
     {
-        if (Winner != null)
+        if (Winner != null || Players.Count == 0)
         {
             return;
         }
 
-        var newIndex = Players.FindIndex(x => x.Id == playerId) + 1;
+        var currentIndex = Players.FindIndex(x => x.Id == playerId) + 1;
 
-        ActivePlayerId = newIndex == Players.Count
-            ? Players[0].Id // TODO: if player 0 is dead this fails
-            : Players
-                .Select((player, index) => (player, index))
-                .Where(x => PlayerFieldCount(x.player) > 0)
-                .First(x => x.index >= newIndex)
-                .player.Id;
+        var activePlayer = Players
+            .Select((player, index) => (player, index: (index - currentIndex + Players.Count) % Players.Count))
+            .Where(x => PlayerFieldCount(x.player) > 0)
+            .OrderBy(x => x.index)
+            .FirstOrDefault()
+            .player;
+
+        ActivePlayerId = activePlayer.Id;
     }
 
     private int AddNewDiceToPlayer(string playerId, int diceBuffer)
@@ -207,6 +209,14 @@ public class GameEntity : GameState, IGameEntity
             }
 
             return diceBuffer;
+        }
+    }
+
+    private void CalculateContinuousFieldCountsForAllPlayers()
+    {
+        foreach (var player in Players)
+        {
+            player.ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(player.Id);
         }
     }
 }

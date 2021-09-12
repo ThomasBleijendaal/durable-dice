@@ -3,11 +3,6 @@
 @page "/"
 @page "/{gameId}"
 
-@using Blazored.LocalStorage
-@using DurableDice.Common.Abstractions
-@using DurableDice.Common.Models.Commands
-@using DurableDice.GameClient.Services
-@using Microsoft.AspNetCore.SignalR.Client;
 @using DurableDice.Common.Models.State;
 
 @if (!_connected)
@@ -18,7 +13,7 @@
 @if (string.IsNullOrEmpty(_playerName))
 {
 	<input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
-	<button @onclick="JoinAsync">Join</button>
+	<button @onclick="JoinAsync" class=@_buttonClassName>Join</button>
 }
 else if (_gameState == null)
 {
@@ -66,7 +61,7 @@ else if (_gameState != null)
 
 	if (_gameState.Winner is Player winner)
 	{
-		<p>@winner.Name won</p>
+		<p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
 	}
 	else if (_gameState.Fields.Any())
 	{
@@ -77,17 +72,15 @@ else if (_gameState != null)
 			}
 			else if (_gameState.ActivePlayerId == _playerId)
 			{
-				<p>It's your turn! Attack your neighbor or <button @onclick="EndRoundAsync">end round</button></p>
+				<p>It's your turn! Clik on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
 			}
 			else
 			{
 				<p>Please wait for your turn.</p>
 			}
-
-			<p><button @onclick="HackServerAsync">hack the server</button> <button @onclick="HackPlayerAsync">hack the active player</button></p>
 		</div>
 
-		<div class="fields">
+		<div class="fields @(_attacking ? "wait" : "")">
 			@foreach (var (field, index) in _fields)
 			{
 				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
@@ -106,6 +99,10 @@ else if (_gameState != null)
 					if (field.Id == _fromFieldId)
 					{
 						modifierClassName += " mod-attack";
+					}
+					if (field.Id == _toFieldId)
+					{
+						modifierClassName += " mod-defend";
 					}
 				}
 
@@ -160,182 +157,5 @@ else if (_gameState != null)
 				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">@attack.DefendingDiceCount</div>
 			</div>
 		}
-	}
-}
-
-@code
-{
-	[Inject]
-	public NavigationManager navManager { get; set; } = null!;
-
-	[Inject]
-	public ISyncLocalStorageService localStorage { get; set; } = null!;
-
-	[Parameter]
-	public string? GameId { get; set; }
-
-	private bool _connected = true;
-
-	private string _playerId { get; set; } = Guid.NewGuid().ToString();
-	private string _newPlayerName = "";
-	private string _playerName = "";
-
-	private string _hoveringFieldId = "";
-
-	private string _fromFieldId = "";
-	private bool _attacking = false;
-
-	private IGameEntity _gameEntity = null!;
-
-	private GameState? _gameState;
-
-	private IEnumerable<(Player player, int index)> _players
-		=> _gameState?.Players.Select((player, index) => (player, index)) ?? throw new Exception();
-
-	private IEnumerable<(Field field, int index)> _fields
-		=> _gameState?.Fields.Select((field, index) => (field, index)) ?? throw new Exception();
-
-	protected override void OnInitialized()
-	{
-		var localStoragePlayerId = "";
-
-		if (string.IsNullOrEmpty(GameId) || !Guid.TryParse(GameId, out _))
-		{
-			GameId = Guid.NewGuid().ToString();
-			navManager.NavigateTo($"/{GameId}", false);
-		}
-		else
-		{
-			localStoragePlayerId = localStorage.GetItem<string>($"playerId-{GameId}");
-			_playerId = localStoragePlayerId;
-			_playerName = _playerId;
-		}
-
-		Console.WriteLine($"Joined game '{GameId}' as player '{_playerId}' -- (local storage player '{localStoragePlayerId}')");
-
-		var gameEntityService = new GameEntityService(GameId, (navManager.BaseUri.Contains("localhost")) ? "http://localhost:7071" : "https://durabledice.azurewebsites.net");
-		gameEntityService.NewStateReceived += NewState;
-		gameEntityService.ConnectionState += ConnectionState;
-
-		_gameEntity = gameEntityService;
-	}
-
-	private void NewState(GameState state)
-	{
-		_gameState = state;
-
-		if (_attacking)
-		{
-			_attacking = false;
-			_fromFieldId = "";
-		}
-
-		StateHasChanged();
-	}
-
-	private void ConnectionState(bool connected)
-	{
-		_connected = connected;
-		StateHasChanged();
-	}
-
-	private async Task JoinAsync()
-	{
-		if (!string.IsNullOrWhiteSpace(_newPlayerName))
-		{
-			_playerName = _newPlayerName;
-			_playerId = Guid.NewGuid().ToString();
-			localStorage.SetItem<string>($"playerId-{GameId}", _playerId);
-
-			Console.WriteLine("Saving playerId");
-
-			await _gameEntity.AddPlayerAsync(new AddPlayerCommand(_playerId, _playerName));
-		}
-	}
-
-	private async Task ReadyAsync() => await _gameEntity.ReadyAsync(_playerId);
-	private async Task EndRoundAsync() => await _gameEntity.EndRoundAsync(_playerId);
-	private async Task HackServerAsync()
-	{
-		var type = typeof(GameEntityService);
-
-		var fields = type.GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-		var connectionField = fields.First(x => x.Name == "_connection");
-
-		var connection = (HubConnection)connectionField.GetValue(_gameEntity);
-
-		_gameState.Fields.ForEach(x => x.OwnerId = _playerId);
-
-		await connection.SendAsync("Broadcast", _gameState);
-	}
-
-	private async Task HackPlayerAsync()
-	{
-		await _gameEntity.EndRoundAsync(_gameState.ActivePlayerId);
-	}
-
-	private async Task FieldClickAsync(Field field)
-	{
-		if (_attacking || _gameState == null || _gameState.ActivePlayerId != _playerId)
-		{
-			return;
-		}
-
-		if (string.IsNullOrEmpty(_fromFieldId))
-		{
-			if (field.OwnerId == _playerId && field.DiceCount > 1)
-			{
-				_fromFieldId = field.Id;
-			}
-		}
-		else if (field.Id == _fromFieldId)
-		{
-			_fromFieldId = "";
-		}
-		else if (field.OwnerId != _playerId)
-		{
-			await _gameEntity.AttackFieldAsync(new AttackMoveCommand(_playerId, _fromFieldId, field.Id));
-			_attacking = true;
-		}
-
-		StateHasChanged();
-	}
-
-	public void Dispose()
-	{
-		if (_gameEntity is GameEntityService service)
-		{
-			service.NewStateReceived -= NewState;
-		}
-	}
-
-	public (int left, int top) Position(Coordinate coordinate)
-	{
-		var left = coordinate.X % 2 == 1
-			? coordinate.X * 21
-			: coordinate.X * 21;
-		var top = coordinate.X % 2 == 1
-			? 12 + coordinate.Y * 24
-			: coordinate.Y * 24;
-
-		return (left, top);
-	}
-
-	public string DescribeAttack(Attack attack)
-	{
-		var diceDelta = attack.AttackingDiceCount - attack.DefendingDiceCount;
-		switch (diceDelta)
-		{
-			case < -15: return "got owned by";
-			case < -10: return "never stood a change with";
-			case < -5: return "underestimated";
-			case < 0: return "came short against";
-			case 0: return "did not have enough for";
-			case < 5: return "barely won of";
-			case < 10: return "defeated";
-			case < 15: return "destroyed";
-			default: return "obliterated";
-		};
 	}
 }

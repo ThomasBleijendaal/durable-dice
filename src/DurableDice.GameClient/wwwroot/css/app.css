@@ -30,6 +30,19 @@ button {
     color: black;
 }
 
+    button.sending {
+        background: #b1adab;
+        border: 3px solid #b1adab;
+        cursor: wait;
+    }
+
+.winner {
+    margin: 0 auto;
+    width: 10rem;
+    padding: 2rem;
+    text-align: center;
+}
+
 .players {
     margin: 1rem;
     width: 100%;
@@ -81,6 +94,10 @@ button {
     position: relative;
     cursor: default;
 }
+
+    .fields.wait {
+        cursor: wait;
+    }
 
 .label {
     position: absolute;
@@ -150,6 +167,11 @@ button {
     border-color: rgba(255, 255, 255, 1);
 }
 
+.modifier.mod-defend > * {
+    background-color: rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 1);
+}
+
 .modifier.mod-attacking-success * {
     background-color: rgba(0, 255, 0, 1);
     border-color: rgba(0, 255, 0, 1);
@@ -167,31 +189,37 @@ button {
     border-color: rgba(255, 255, 0, 0.4);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-2-dice-added * {
     background-color: rgba(255, 255, 0, 0.5);
     border-color: rgba(255, 255, 0, 0.5);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-3-dice-added * {
     background-color: rgba(255, 255, 0, 0.6);
     border-color: rgba(255, 255, 0, 0.6);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-4-dice-added * {
     background-color: rgba(255, 255, 0, 0.7);
     border-color: rgba(255, 255, 0, 0.7);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-5-dice-added * {
     background-color: rgba(255, 255, 0, 0.8);
     border-color: rgba(255, 255, 0, 0.8);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-6-dice-added * {
     background-color: rgba(255, 255, 0, 0.9);
     border-color: rgba(255, 255, 0, 0.9);
     animation: fade 2s forwards;
 }
+
 .modifier.mod-7-dice-added * {
     background-color: rgba(255, 255, 0, 1);
     border-color: rgba(255, 255, 0, 1);
@@ -227,41 +255,49 @@ button {
 
 
 .player-0, .player-0 * {
+    /* Orange20 */
     background-color: #ca5010;
     border-color: #ca5010;
 }
 
 .player-1, .player-1 * {
+    /* Blue10 */
     background-color: #4f6bed;
     border-color: #4f6bed;
 }
 
 .player-2, .player-2 * {
+    /* Green10 */
     background-color: #498205;
     border-color: #498205;
 }
 
 .player-3, .player-3 * {
+    /* Magenta20 */
     background-color: #881798;
     border-color: #881798;
 }
 
 .player-4, .player-4 * {
+    /* Green (Dark) */
     background-color: #00b294;
     border-color: #00b294;
 }
 
 .player-5, .player-5 * {
+    /* Yellow (Dark) */
     background-color: #ffc83d;
     border-color: #ffc83d;
 }
 
 .player-6, .player-6 * {
+    /* MagentaPink10 */
     background-color: #e3008c;
     border-color: #e3008c;
 }
 
 .player-7, .player-7 * {
+    /* OrangeYellow20 */
     background-color: #986f0b;
     border-color: #986f0b;
 }

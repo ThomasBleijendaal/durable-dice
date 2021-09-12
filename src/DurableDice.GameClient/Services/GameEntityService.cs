@@ -10,12 +10,15 @@ public class GameEntityService : IGameEntity
     private readonly HubConnection _connection;
 
     private readonly Task _init;
-    private readonly string _gameId;
 
-    public GameEntityService(string gameId, string baseUrl)
+    public GameEntityService(string gameId, string playerId, string baseUrl)
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl(baseUrl)
+            .WithUrl(baseUrl, (options) =>
+            {
+                options.Headers.Add("x-playerid", playerId);
+                options.Headers.Add("x-gameid", gameId);
+            })
             .Build();
 
         _connection.On<GameState>("Broadcast", (newState) => NewStateReceived?.Invoke(newState));
@@ -23,7 +26,6 @@ public class GameEntityService : IGameEntity
         _connection.Reconnected += Reconnected;
 
         _init = InitAsync();
-        _gameId = gameId;
     }
 
     public event Action<GameState>? NewStateReceived;
@@ -32,31 +34,31 @@ public class GameEntityService : IGameEntity
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
         await _init;
-        await _connection.SendAsync("AddPlayer", _gameId, command);
+        await _connection.SendAsync("AddPlayer", command);
     }
 
     public async Task AttackFieldAsync(AttackMoveCommand command)
     {
         await _init;
-        await _connection.SendAsync("AttackField", _gameId, command);
+        await _connection.SendAsync("AttackField", command);
     }
 
     public async Task EndRoundAsync(string playerId)
     {
         await _init;
-        await _connection.SendAsync("EndRound", _gameId, playerId);
+        await _connection.SendAsync("EndRound");
     }
 
     public async Task RemovePlayerAsync(string playerId)
     {
         await _init;
-        await _connection.SendAsync("RemovePlayer", _gameId, playerId);
+        await _connection.SendAsync("RemovePlayer", playerId);
     }
 
     public async Task ReadyAsync(string playerId)
     {
         await _init;
-        await _connection.SendAsync("Ready", _gameId, playerId);
+        await _connection.SendAsync("Ready");
     }
 
     private Task Reconnecting(Exception? arg)
@@ -74,6 +76,6 @@ public class GameEntityService : IGameEntity
     private async Task InitAsync()
     {
         await _connection.StartAsync();
-        await _connection.SendAsync("JoinGame", _gameId);
+        await _connection.SendAsync("JoinGame");
     }
 }
