@@ -6,7 +6,15 @@
         "methods": [ "GET", "OPTIONS" ],
         "route": "/"
       },
-      "backendUri": "https://durabledice.blob.core.windows.net/site/index.html",
+      "backendUri": "https://durabledice.blob.core.windows.net/",
+      "debug": true
+    },
+    "gameid": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": "/{gameid}"
+      },
+      "backendUri": "https://durabledice.blob.core.windows.net/{gameid}",
       "debug": true
     },
     "content": {
