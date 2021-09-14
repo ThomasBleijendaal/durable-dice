@@ -95,6 +95,7 @@ else if (_gameState != null)
 						(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
 					{
 						className += " field-attackable";
+						labelClassName += " field-attackable";
 					}
 
 					if (field.Id == _fromFieldId)
@@ -132,10 +133,15 @@ else if (_gameState != null)
 						<div class="left"></div>
 						<div class="middle"></div>
 						<div class="right"></div>
-						<div class=@modifierClassName>
+						<div class="hover">
 							<div class="left"></div>
 							<div class="middle"></div>
 							<div class="right"></div>
+							<div class=@modifierClassName>
+								<div class="left"></div>
+								<div class="middle"></div>
+								<div class="right"></div>
+							</div>
 						</div>
 					</div>
 				}

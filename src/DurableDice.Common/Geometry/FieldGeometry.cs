@@ -23,7 +23,6 @@ public class FieldGeometry
             return false;
         }
 
-        // TODO: determine border coordinates to reduce number of comparisons
         foreach (var field1NeighboringCoordinate in field1.Coordinates.SelectMany(GetNeighboringCoordinates))
         {
             if (field2.Coordinates.Any(field2Coordinate => field1NeighboringCoordinate == field2Coordinate))
