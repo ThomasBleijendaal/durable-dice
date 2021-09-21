@@ -43,7 +43,7 @@ else if (_gameState != null)
 				className += " player-not-ready";
 			}
 
-			<div class=@className>
+			<div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@index'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
 				@player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
 			</div>
 		}
@@ -92,7 +92,7 @@ else if (_gameState != null)
 				if (_gameState.ActivePlayerId == _playerId)
 				{
 					if (_playerId == field.OwnerId && field.DiceCount > 1 ||
-						(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+					(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
 					{
 						className += " field-attackable";
 						labelClassName += " field-attackable";
@@ -129,7 +129,7 @@ else if (_gameState != null)
 				{
 					var (left, top) = Position(coordinate);
 
-					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
+					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
 						<div class="left"></div>
 						<div class="middle"></div>
 						<div class="right"></div>
@@ -149,7 +149,7 @@ else if (_gameState != null)
 				{
 					var (left, top) = Position(field.Center);
 
-					<div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.hover = '@index'" onmouseleave="this.parentNode.dataset.hover = ''">
+					<div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
 						@field.DiceCount
 					</div>
 				}
@@ -159,9 +159,19 @@ else if (_gameState != null)
 		@if (_gameState.PreviousAttack is Attack attack)
 		{
 			<div class="attack">
-				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">@attack.AttackingDiceCount</div>
+				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">
+					@foreach (var die in @attack.AttackingDiceCount)
+					{
+						<Die Count=die />
+					}
+				</div>
 				<div class="attacked">@DescribeAttack(attack)</div>
-				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">@attack.DefendingDiceCount</div>
+				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">
+					@foreach (var die in @attack.DefendingDiceCount)
+					{
+						<Die Count=die />
+					}
+				</div>
 			</div>
 		}
 	}

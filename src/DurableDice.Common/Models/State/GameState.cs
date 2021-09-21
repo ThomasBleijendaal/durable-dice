@@ -17,6 +17,9 @@ public class GameState
     public string? ActivePlayerId { get; set; }
 
     [JsonProperty]
+    public int GameRound { get; set; }
+
+    [JsonProperty]
     public MatchState State { get; set; }
 
     [JsonProperty]

@@ -168,7 +168,7 @@ public partial class Index
     }
 
     private static string DescribeAttack(Attack attack) 
-        => (attack.AttackingDiceCount - attack.DefendingDiceCount) switch
+        => (attack.AttackingDiceCount.Sum() - attack.DefendingDiceCount.Sum()) switch
         {
             < -15 => "got owned by",
             < -10 => "never stood a change against",

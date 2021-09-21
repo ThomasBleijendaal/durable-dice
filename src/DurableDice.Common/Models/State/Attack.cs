@@ -4,9 +4,9 @@ public class Attack
 {
     public string AttackerId { get; set; } = "";
     public string AttackingFieldId { get; set; } = "";
-    public int AttackingDiceCount { get; set; }
+    public List<int> AttackingDiceCount { get; set; } = new List<int>();
     public string DefenderId { get; set; } = "";
     public string DefendingFieldId { get; set; } = "";
-    public int DefendingDiceCount { get; set; }
+    public List<int> DefendingDiceCount { get; set; } = new List<int>();
     public bool IsSuccessful { get; set; }
 }

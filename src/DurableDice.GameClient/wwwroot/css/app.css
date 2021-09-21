@@ -1,6 +1,7 @@
 ﻿* {
     font-family: Verdana;
     font-size: 16px;
+    cursor: default;
 }
 
 body {
@@ -28,6 +29,7 @@ button {
     background: #ffc83d;
     border: 3px solid #ffc83d;
     color: black;
+    cursor: pointer;
 }
 
     button.sending {
@@ -251,12 +253,12 @@ button {
 
     .attack .attacker, .attack .defender {
         padding: 1rem;
-        width: 25px;
-        height: 25px;
         margin: 1rem;
         float: left;
         text-align: center;
         line-height: 25px;
+        background-color: transparent !important;
+        max-width: 160px;
     }
 
     .attack .attacked {
@@ -265,32 +267,83 @@ button {
         margin: 1rem;
         float: left;
         text-align: center;
-        line-height: 25px;
+        line-height: 35px;
         color: #fff;
     }
 
+    .attack .die {
+        display: grid;
+        grid-template-areas:
+            "a . c"
+            "e g f"
+            "d . b";
+        flex: 0 0 auto;
+        margin: 4px;
+        padding: 3px;
+        width: 26px;
+        height: 26px;
+        box-shadow: inset 0 1px white, inset 0 -1px #bbb, inset 1px 0 #d7d7d7, inset -1px 0 #d7d7d7;
+        border-radius: 10%;
+        float: left;
+    }
+
+        .attack .die .pip {
+            display: block;
+            align-self: center;
+            justify-self: center;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #333;
+            box-shadow: inset 0 3px #111, inset 0 -3px #555;
+        }
+
+            .attack .die .pip:nth-child(2) {
+                grid-area: b;
+            }
+
+            .attack .die .pip:nth-child(3) {
+                grid-area: c;
+            }
+
+            .attack .die .pip:nth-child(4) {
+                grid-area: d;
+            }
+
+            .attack .die .pip:nth-child(5) {
+                grid-area: e;
+            }
+
+            .attack .die .pip:nth-child(6) {
+                grid-area: f;
+            }
+            /* This selects the last pip of odd-valued dice (1, 3, 5) and positions the pip in the center */
+            .attack .die .pip:nth-child(odd):last-child {
+                grid-area: g;
+            }
+
 .player-0, .player-0 > * {
-    /* Orange20 */
-    background-color: #ca5010;
-    border-color: #ca5010;
+    /* Yellow (Dark) */
+    background-color: #ffc83d;
+    border-color: #ffc83d;
 }
 
 .player-1, .player-1 > * {
+    /* MagentaPink10 */
+    background-color: #e3008c;
+    border-color: #e3008c;
+}
+
+.player-2, .player-2 > * {
     /* Blue10 */
     background-color: #4f6bed;
     border-color: #4f6bed;
 }
 
-.player-2, .player-2 > * {
-    /* Green10 */
-    background-color: #498205;
-    border-color: #498205;
-}
-
 .player-3, .player-3 > * {
-    /* Magenta20 */
-    background-color: #881798;
-    border-color: #881798;
+    /* OrangeYellow20 */
+    background-color: #986f0b;
+    border-color: #986f0b;
 }
 
 .player-4, .player-4 > * {
@@ -300,60 +353,66 @@ button {
 }
 
 .player-5, .player-5 > * {
-    /* Yellow (Dark) */
-    background-color: #ffc83d;
-    border-color: #ffc83d;
+    /* Green10 */
+    background-color: #498205;
+    border-color: #498205;
 }
 
 .player-6, .player-6 > * {
-    /* MagentaPink10 */
-    background-color: #e3008c;
-    border-color: #e3008c;
+    /* Magenta20 */
+    background-color: #881798;
+    border-color: #881798;
 }
 
 .player-7, .player-7 > * {
-    /* OrangeYellow20 */
-    background-color: #986f0b;
-    border-color: #986f0b;
+    /* Orange20 */
+    background-color: #ca5010;
+    border-color: #ca5010;
 }
 
-[data-hover="0"] .field-0 .hover > *,
-[data-hover="1"] .field-1 .hover > *,
-[data-hover="2"] .field-2 .hover > *,
-[data-hover="3"] .field-3 .hover > *,
-[data-hover="4"] .field-4 .hover > *,
-[data-hover="5"] .field-5 .hover > *,
-[data-hover="6"] .field-6 .hover > *,
-[data-hover="7"] .field-7 .hover > *,
-[data-hover="8"] .field-8 .hover > *,
-[data-hover="9"] .field-9 .hover > *,
-[data-hover="10"] .field-10 .hover > *,
-[data-hover="11"] .field-11 .hover > *,
-[data-hover="12"] .field-12 .hover > *,
-[data-hover="13"] .field-13 .hover > *,
-[data-hover="14"] .field-14 .hover > *,
-[data-hover="15"] .field-15 .hover > *,
-[data-hover="16"] .field-16 .hover > *,
-[data-hover="17"] .field-17 .hover > *,
-[data-hover="18"] .field-18 .hover > *,
-[data-hover="19"] .field-19 .hover > *,
-[data-hover="20"] .field-20 .hover > *,
-[data-hover="21"] .field-21 .hover > *,
-[data-hover="22"] .field-22 .hover > *,
-[data-hover="23"] .field-23 .hover > *,
-[data-hover="24"] .field-24 .hover > *,
-[data-hover="25"] .field-25 .hover > *,
-[data-hover="26"] .field-26 .hover > *,
-[data-hover="27"] .field-27 .hover > *,
-[data-hover="28"] .field-28 .hover > *,
-[data-hover="29"] .field-29 .hover > *,
-[data-hover="30"] .field-30 .hover > *,
-[data-hover="31"] .field-31 .hover > * {
+
+[data-fieldhover="0"] .field-0 .hover > *,
+[data-fieldhover="1"] .field-1 .hover > *,
+[data-fieldhover="2"] .field-2 .hover > *,
+[data-fieldhover="3"] .field-3 .hover > *,
+[data-fieldhover="4"] .field-4 .hover > *,
+[data-fieldhover="5"] .field-5 .hover > *,
+[data-fieldhover="6"] .field-6 .hover > *,
+[data-fieldhover="7"] .field-7 .hover > *,
+[data-fieldhover="8"] .field-8 .hover > *,
+[data-fieldhover="9"] .field-9 .hover > *,
+[data-fieldhover="10"] .field-10 .hover > *,
+[data-fieldhover="11"] .field-11 .hover > *,
+[data-fieldhover="12"] .field-12 .hover > *,
+[data-fieldhover="13"] .field-13 .hover > *,
+[data-fieldhover="14"] .field-14 .hover > *,
+[data-fieldhover="15"] .field-15 .hover > *,
+[data-fieldhover="16"] .field-16 .hover > *,
+[data-fieldhover="17"] .field-17 .hover > *,
+[data-fieldhover="18"] .field-18 .hover > *,
+[data-fieldhover="19"] .field-19 .hover > *,
+[data-fieldhover="20"] .field-20 .hover > *,
+[data-fieldhover="21"] .field-21 .hover > *,
+[data-fieldhover="22"] .field-22 .hover > *,
+[data-fieldhover="23"] .field-23 .hover > *,
+[data-fieldhover="24"] .field-24 .hover > *,
+[data-fieldhover="25"] .field-25 .hover > *,
+[data-fieldhover="26"] .field-26 .hover > *,
+[data-fieldhover="27"] .field-27 .hover > *,
+[data-fieldhover="28"] .field-28 .hover > *,
+[data-fieldhover="29"] .field-29 .hover > *,
+[data-fieldhover="30"] .field-30 .hover > *,
+[data-fieldhover="31"] .field-31 .hover > * {
     background-color: rgba(255, 255, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.4);
     animation: none;
 }
 
+/*[data-playerhover] .hexagon * {
+    background-color: #444;
+    border-color: #444;
+}
+*/
 .field-attackable, field-attackable > * {
     cursor: pointer !important;
 }
