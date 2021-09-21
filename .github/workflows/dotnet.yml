@@ -2,7 +2,7 @@ name: .NET
 
 on:
   push:
-    branches: [ main, proxy-fix ]
+    branches: [ main, improvements ]
 
 jobs:
   build:
