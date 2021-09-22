@@ -63,23 +63,26 @@ else if (_gameState != null)
 	{
 		<p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
 	}
-	
+
 	if (_gameState.Fields.Any())
 	{
-		<div class="buttons">
-			@if (_gameState.PlayerIsDead(_playerId))
-			{
-				<p>You are dead.</p>
-			}
-			else if (_gameState.ActivePlayerId == _playerId)
-			{
-				<p>It's your turn! Clik on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
-			}
-			else
-			{
-				<p>Please wait for your turn.</p>
-			}
-		</div>
+		if (_gameState.Winner == null)
+		{
+			<div class="buttons">
+				@if (_gameState.PlayerIsDead(_playerId))
+				{
+					<p>You are dead.</p>
+				}
+				else if (_gameState.ActivePlayerId == _playerId)
+				{
+					<p>It's your turn! Clik on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
+				}
+				else
+				{
+					<p>Please wait for your turn.</p>
+				}
+			</div>
+		}
 
 		<div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
 			@foreach (var (field, index) in _fields)
