@@ -1,4 +1,5 @@
-﻿using DurableDice.Common.Models.State;
+﻿using System.Security.Cryptography;
+using DurableDice.Common.Models.State;
 
 namespace DurableDice.Common.Geometry;
 
@@ -128,7 +129,7 @@ public class FieldGeometry
             var neighbors = GetNeighboringCoordinates(center)
                 .Where(allowedCoordinates.Contains)
                 .OrderBy(x => Guid.NewGuid())
-                .Take(Random.Shared.Next(1, 3));
+                .Take(RandomNumberGenerator.GetInt32(3) + 1);
 
             coordinates.AddRange(neighbors.SelectMany(neighbor => GetShapeAroundCoordinate(neighbor, size - 1, allowedCoordinates)));
         }

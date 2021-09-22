@@ -25,6 +25,11 @@ input {
     background: #c19c00;
 }
 
+.loading {
+    padding: 1rem;
+    background: #00ad56;
+}
+
 button {
     background: #ffc83d;
     border: 3px solid #ffc83d;
@@ -189,7 +194,6 @@ button {
     cursor: pointer;
 }
 
-
 .modifier.mod-attacking-success * {
     background-color: rgba(0, 255, 0, 1);
     border-color: rgba(0, 255, 0, 1);
@@ -252,7 +256,7 @@ button {
 }
 
     .attack .attacker, .attack .defender {
-        padding: 1rem;
+        padding: 1rem .5rem;
         margin: 1rem;
         float: left;
         text-align: center;
@@ -262,7 +266,7 @@ button {
     }
 
     .attack .attacked {
-        padding: 1rem;
+        padding: 1rem .5rem;
         height: 25px;
         margin: 1rem;
         float: left;
@@ -511,6 +515,76 @@ button {
 .mod-9 > * {
     filter: brightness(.875);
 }
+
+.heatmap .label {
+    display: none;
+}
+
+.heatmap .hexagon.heat-0 > * {
+    background-color: #160600;
+    border-color: #160600;
+}
+
+.heatmap .hexagon.heat-1 > * {
+    background-color: #2c0c00;
+    border-color: #2c0c00;
+}
+
+.heatmap .hexagon.heat-2 > * {
+    background-color: #411200;
+    border-color: #411200;
+}
+
+.heatmap .hexagon.heat-3 > * {
+    background-color: #571800;
+    border-color: #571800;
+}
+
+.heatmap .hexagon.heat-4 > * {
+    background-color: #6d1e01;
+    border-color: #6d1e01;
+}
+
+.heatmap .hexagon.heat-5 > * {
+    background-color: #832301;
+    border-color: #832301;
+}
+
+.heatmap .hexagon.heat-6 > * {
+    background-color: #992901;
+    border-color: #992901;
+}
+
+.heatmap .hexagon.heat-7 > * {
+    background-color: #ae2f01;
+    border-color: #ae2f01;
+}
+
+.heatmap .hexagon.heat-8 > * {
+    background-color: #c43501;
+    border-color: #c43501;
+}
+
+.heatmap .hexagon.heat-9 > * {
+    background-color: #da3b01;
+    border-color: #da3b01;
+}
+
+.heatmap .hexagon.heat-10 > * {
+    background-color: #ff0000;
+    border-color: #ff0000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    table td {
+        color: #a0aeb2;
+        padding: .3rem;
+        border-bottom: 1px solid #393939;
+    }
 
 @keyframes fade {
     from {

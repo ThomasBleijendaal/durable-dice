@@ -1,4 +1,5 @@
-﻿using DurableDice.Common.Models.State;
+﻿using System.Security.Cryptography;
+using DurableDice.Common.Models.State;
 
 namespace DurableDice.Common.Geometry;
 
@@ -24,7 +25,7 @@ public static class FieldGenerator
             .ToList();
 
         var playerFields = players
-            .SelectMany(player => 
+            .SelectMany(player =>
                 Enumerable.Range(0, fieldsPerPlayer)
                     .Select(field => new Field
                     {
@@ -44,7 +45,9 @@ public static class FieldGenerator
             Coordinate center;
             if (first)
             {
-                center = coordinates.First();
+                center = coordinates.Where(x => 
+                    x.X > (HorizontalCoordinates / 3) && x.X < (2 * HorizontalCoordinates / 3) &&
+                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3)).First();
                 first = false;
             }
             else
@@ -55,7 +58,7 @@ public static class FieldGenerator
                     .First();
             }
 
-            var size = Random.Shared.Next(1, 6);
+            var size = RandomNumberGenerator.GetInt32(5) + 1;
             var block = FieldGeometry.GetShapeAroundCoordinate(center, size, coordinates);
             var allowedBlocks = block.Intersect(coordinates).ToList();
 
@@ -64,7 +67,7 @@ public static class FieldGenerator
 
             allowedBlocks.ForEach(claimedBlock => coordinates.Remove(claimedBlock));
 
-            static IEnumerable<Coordinate> Neighbors(IEnumerable<Coordinate> coordinates, int distance) 
+            static IEnumerable<Coordinate> Neighbors(IEnumerable<Coordinate> coordinates, int distance)
                 => distance == 0
                     ? coordinates
                     : Neighbors(coordinates.SelectMany(FieldGeometry.GetNeighboringCoordinates), distance - 1);

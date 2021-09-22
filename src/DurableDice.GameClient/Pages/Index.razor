@@ -17,7 +17,7 @@
 }
 else if (_gameState == null)
 {
-	<p>Loading..</p>
+	<p class="loading">Loading..</p>
 }
 else if (_gameState != null)
 {
@@ -63,7 +63,8 @@ else if (_gameState != null)
 	{
 		<p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
 	}
-	else if (_gameState.Fields.Any())
+	
+	if (_gameState.Fields.Any())
 	{
 		<div class="buttons">
 			@if (_gameState.PlayerIsDead(_playerId))
@@ -80,7 +81,7 @@ else if (_gameState != null)
 			}
 		</div>
 
-		<div class="fields @(_attacking ? "wait" : "")">
+		<div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
 			@foreach (var (field, index) in _fields)
 			{
 				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
@@ -125,6 +126,21 @@ else if (_gameState != null)
 					}
 				}
 
+				if (_gameHistoryFields != null)
+				{
+					var historyData = _gameHistoryFields.First(x => x.FieldId == field.Id);
+
+					var maxActions = _gameHistoryFields.Max(x => x.NumberOfActions);
+					if (maxActions > 0)
+					{
+						var heat = (10.0 * historyData.NumberOfActions) / maxActions;
+
+						var heatClass = $" heat-{heat:0}";
+
+						className += heatClass;
+					}
+				}
+
 				@foreach (var coordinate in field.Coordinates)
 				{
 					var (left, top) = Position(coordinate);
@@ -156,7 +172,7 @@ else if (_gameState != null)
 			}
 		</div>
 
-		@if (_gameState.PreviousAttack is Attack attack)
+		@if (_gameHistoryPlayers == null && _gameState.PreviousAttack is Attack attack)
 		{
 			<div class="attack">
 				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">
@@ -174,5 +190,31 @@ else if (_gameState != null)
 				</div>
 			</div>
 		}
+	}
+
+	@if (_gameHistoryPlayers != null)
+	{
+		<table>
+			<thead>
+				<tr>
+					<td>Player</td>
+					<td>Fields captured</td>
+					<td>Fields lost</td>
+				</tr>
+			</thead>
+
+			<tbody>
+				@foreach (var player in _gameHistoryPlayers)
+				{
+					var p = _players.First(x => x.player.Id == player.PlayerId);
+
+					<tr>
+						<td>@p.player.Name</td>
+						<td>@player.NumberOfFieldsCaptured</td>
+						<td>@player.NumberOfFieldsLost</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	}
 }

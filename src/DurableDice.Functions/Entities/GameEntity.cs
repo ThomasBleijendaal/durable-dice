@@ -1,4 +1,5 @@
-﻿using DurableDice.Common.Abstractions;
+﻿using System.Security.Cryptography;
+using DurableDice.Common.Abstractions;
 using DurableDice.Common.Geometry;
 using DurableDice.Common.Helpers;
 using DurableDice.Common.Models.Commands;
@@ -16,13 +17,12 @@ public class GameEntity : GameState, IGameEntity
 {
     private readonly IAsyncCollector<SignalRMessage> _signalr;
     private readonly string _gameId;
-    private readonly IGameHistoryService _gameHistoryService;
-    private readonly Random _random = new Random();
+    private readonly GameHistoryService _gameHistoryService;
 
     public GameEntity(
         IAsyncCollector<SignalRMessage> signalr,
         string gameId,
-        IGameHistoryService gameHistoryService)
+        GameHistoryService gameHistoryService)
     {
         _signalr = signalr;
         _gameId = gameId;
@@ -144,7 +144,7 @@ public class GameEntity : GameState, IGameEntity
 
         if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
-            ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
+            ActivePlayerId = Players[RandomNumberGenerator.GetInt32(Players.Count)].Id;
 
             var fieldCountPerPlayer = 32 / Players.Count;
 
@@ -208,7 +208,7 @@ public class GameEntity : GameState, IGameEntity
         {
             foreach (var field in playerFields)
             {
-                var diceTaken = _random.Next(0, Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
+                var diceTaken = RandomNumberGenerator.GetInt32(Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
 
                 field.DiceAdded = diceTaken;
                 field.DiceCount += diceTaken;

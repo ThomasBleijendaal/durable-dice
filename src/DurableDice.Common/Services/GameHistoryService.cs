@@ -4,7 +4,7 @@ using Microsoft.Azure.Cosmos.Table;
 
 namespace DurableDice.Common.Services
 {
-    public class GameHistoryService : IGameHistoryService
+    public class GameHistoryService
     {
         private readonly CloudTable _tableClient;
 

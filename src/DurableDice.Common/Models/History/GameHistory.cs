@@ -57,11 +57,8 @@ namespace DurableDice.Common.Models.History
                 var attackingField = fields.First(x => x.FieldId == attack.AttackingFieldId);
                 attackingField.NumberOfActions++;
 
-                if (attack.IsSuccessful)
-                {
-                    var capturedField = fields.First(x => x.FieldId == attack.DefendingFieldId);
-                    capturedField.NumberOfActions++;
-                }
+                var capturedField = fields.First(x => x.FieldId == attack.DefendingFieldId);
+                capturedField.NumberOfActions++;
             }
 
             if (state.GameRound > GameRound)
