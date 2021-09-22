@@ -1,9 +1,12 @@
-﻿using DurableDice.Common.Abstractions;
+﻿using System.Security.Cryptography;
+using DurableDice.Common.Abstractions;
 using DurableDice.Common.Geometry;
 using DurableDice.Common.Helpers;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
+using DurableDice.Common.Services;
 using DurableDice.Functions.SignalRFunctions;
+using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
@@ -14,21 +17,27 @@ public class GameEntity : GameState, IGameEntity
 {
     private readonly IAsyncCollector<SignalRMessage> _signalr;
     private readonly string _gameId;
-    private readonly Random _random = new Random();
+    private readonly GameHistoryService _gameHistoryService;
 
     public GameEntity(
         IAsyncCollector<SignalRMessage> signalr,
-        string gameId)
+        string gameId,
+        GameHistoryService gameHistoryService)
     {
         _signalr = signalr;
         _gameId = gameId;
+        _gameHistoryService = gameHistoryService;
     }
 
     [FunctionName(nameof(GameEntity))]
     public static Task ProxyGameEntityFunction(
         [EntityTrigger] IDurableEntityContext context,
-        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
-            => context.DispatchAsync<GameEntity>(signalr, context.EntityKey);
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr,
+        [Table("history")] CloudTable tableClient)
+            => context.DispatchAsync<GameEntity>(
+                signalr, 
+                context.EntityKey,
+                new GameHistoryService(tableClient));
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
@@ -63,8 +72,8 @@ public class GameEntity : GameState, IGameEntity
 
         Fields.ForEach(x => x.DiceAdded = 0);
 
-        var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount);
-        var defendThrow = DiceHelper.ThrowDice(toField.DiceCount);
+        var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount).ToList();
+        var defendThrow = DiceHelper.ThrowDice(toField.DiceCount).ToList();
 
         PreviousAttack = new Attack
         {
@@ -74,7 +83,7 @@ public class GameEntity : GameState, IGameEntity
             DefenderId = toField.OwnerId,
             DefendingFieldId = command.ToFieldId,
             DefendingDiceCount = defendThrow,
-            IsSuccessful = attackThrow > defendThrow
+            IsSuccessful = attackThrow.Sum() > defendThrow.Sum()
         };
 
         if (PreviousAttack.IsSuccessful)
@@ -87,6 +96,7 @@ public class GameEntity : GameState, IGameEntity
 
         CalculateContinuousFieldCountsForAllPlayers();
 
+        await _gameHistoryService.AddGameStateAsync(_gameId, this);
         await DistributeStateAsync();
     }
 
@@ -109,6 +119,9 @@ public class GameEntity : GameState, IGameEntity
 
             PreviousAttack = null;
 
+            GameRound++;
+
+            await _gameHistoryService.AddGameStateAsync(_gameId, this);
             await DistributeStateAsync();
         }
     }
@@ -131,7 +144,7 @@ public class GameEntity : GameState, IGameEntity
 
         if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
-            ActivePlayerId = Players[_random.Next(0, Players.Count)].Id;
+            ActivePlayerId = Players[RandomNumberGenerator.GetInt32(Players.Count)].Id;
 
             var fieldCountPerPlayer = 32 / Players.Count;
 
@@ -195,7 +208,7 @@ public class GameEntity : GameState, IGameEntity
         {
             foreach (var field in playerFields)
             {
-                var diceTaken = _random.Next(0, Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
+                var diceTaken = RandomNumberGenerator.GetInt32(Math.Min(field.MaxDiceAllowedToAdd, diceBuffer) + 1);
 
                 field.DiceAdded = diceTaken;
                 field.DiceCount += diceTaken;

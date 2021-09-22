@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
+using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
 using DurableDice.Functions.Entities;
 using DurableDice.Functions.Extensions;

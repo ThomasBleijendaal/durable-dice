@@ -1,9 +1,11 @@
 ﻿using Blazored.LocalStorage;
 using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
+using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
 using DurableDice.GameClient.Services;
 using Microsoft.AspNetCore.Components;
+using Newtonsoft.Json;
 
 namespace DurableDice.GameClient.Pages;
 
@@ -15,8 +17,15 @@ public partial class Index
     [Inject]
     public ISyncLocalStorageService LocalStorage { get; set; } = null!;
 
+    [Inject]
+    public HttpClient HttpClient { get; set; } = null!;
+
     [Parameter]
     public string? GameId { get; set; }
+
+    private string ServerEndpoint => NavManager.BaseUri.Contains("localhost")
+        ? "http://localhost:7071"
+        : "https://durabledice.azurewebsites.net";
 
     private bool _connected = true;
 
@@ -31,6 +40,9 @@ public partial class Index
     private IGameEntity _gameEntity = null!;
 
     private GameState? _gameState;
+
+    private List<GamePlayer>? _gameHistoryPlayers;
+    private List<GameField>? _gameHistoryFields;
 
     private bool _sending = false;
     private string _buttonClassName => _sending ? "sending" : "";
@@ -70,20 +82,15 @@ public partial class Index
 
         Console.WriteLine($"Joined game '{GameId}' as player '{_playerId}' -- (local storage player '{localStoragePlayerId}')");
 
-        var gameEntityService = new GameEntityService(
-            GameId, 
-            _playerId, 
-            NavManager.BaseUri.Contains("localhost") 
-                ? "http://localhost:7071" 
-                : "https://durabledice.azurewebsites.net");
+        var gameEntityService = new GameEntityService(GameId, _playerId, ServerEndpoint);
 
-        gameEntityService.NewStateReceived += NewState;
+        gameEntityService.NewStateReceived += NewStateAsync;
         gameEntityService.ConnectionState += ConnectionState;
 
         _gameEntity = gameEntityService;
     }
 
-    private void NewState(GameState state)
+    private async void NewStateAsync(GameState state)
     {
         _sending = false;
         _gameState = state;
@@ -93,6 +100,11 @@ public partial class Index
             _attacking = false;
             _fromFieldId = "";
             _toFieldId = "";
+        }
+
+        if (_gameState.Winner != null)
+        {
+            await DownloadStatsAsync();
         }
 
         StateHasChanged();
@@ -167,8 +179,8 @@ public partial class Index
         return (left, top);
     }
 
-    private static string DescribeAttack(Attack attack) 
-        => (attack.AttackingDiceCount - attack.DefendingDiceCount) switch
+    private static string DescribeAttack(Attack attack)
+        => (attack.AttackingDiceCount.Sum() - attack.DefendingDiceCount.Sum()) switch
         {
             < -15 => "got owned by",
             < -10 => "never stood a change against",
@@ -181,11 +193,25 @@ public partial class Index
             _ => "obliterated",
         };
 
+    private async Task DownloadStatsAsync()
+    {
+        var historyJson = await HttpClient.GetStringAsync($"{ServerEndpoint}/history/{GameId}");
+
+        var history = JsonConvert.DeserializeObject<GameHistory>(historyJson);
+
+        if (history != null)
+        {
+            _gameHistoryPlayers = history.GetPlayers();
+            _gameHistoryFields = history.GetFields();
+
+        }
+    }
+
     public void Dispose()
     {
         if (_gameEntity is GameEntityService service)
         {
-            service.NewStateReceived -= NewState;
+            service.NewStateReceived -= NewStateAsync;
         }
     }
 }

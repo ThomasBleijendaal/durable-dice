@@ -39,6 +39,14 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
       }
     }
   }
+
+  resource tables 'tableServices' = {
+    name: 'default'
+
+    resource historyTable 'tables' = {
+      name: 'history'
+    }
+  }
 }
 
 resource hostingplan 'Microsoft.Web/serverfarms@2021-01-15' = {
