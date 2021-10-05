@@ -12,6 +12,26 @@
 <body>
     <div id="app">Loading...</div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+    <script>
+        window.chart =
+        {
+            Show: function (data) {
+                var ctx = document.getElementById('myChart').getContext('2d');
+                var myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        };
+    </script>
 </body>
 
 </html>

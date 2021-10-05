@@ -1,10 +1,12 @@
-﻿using Blazored.LocalStorage;
+﻿using System.Text;
+using Blazored.LocalStorage;
 using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
 using DurableDice.GameClient.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Newtonsoft.Json;
 
 namespace DurableDice.GameClient.Pages;
@@ -20,8 +22,23 @@ public partial class Index
     [Inject]
     public HttpClient HttpClient { get; set; } = null!;
 
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = null!;
+
     [Parameter]
     public string? GameId { get; set; }
+
+    private readonly string[] _colors = new []
+    {
+        "#ffc83d",
+        "#e3008c",
+        "#4f6bed",
+        "#986f0b",
+        "#00b294",
+        "#498205",
+        "#881798",
+        "#ca5010"
+    };
 
     private string ServerEndpoint => NavManager.BaseUri.Contains("localhost")
         ? "http://localhost:7071"
@@ -199,10 +216,34 @@ public partial class Index
 
         var history = JsonConvert.DeserializeObject<GameHistory>(historyJson);
 
-        if (history != null)
+        if (history != null && _gameState != null)
         {
             _gameHistoryPlayers = history.GetPlayers();
             _gameHistoryFields = history.GetFields();
+
+            var data = history.GetCount();
+
+            await JSRuntime.InvokeVoidAsync("chart.Show", new
+            {
+                labels = data.Select((x, index) => index),
+                datasets = _gameState.Players.Select((p, index) => new
+                {
+                    label = $"{p.Name} dice count",
+                    data = data.Select(x => x.DiceCount[index]),
+                    borderColor = _colors[index],
+                    backgroundColor = _colors[index],
+                    borderWidth = 3,
+                    pointRadius = 0
+                }).Concat(_gameState.Players.Select((p, index) => new
+                {
+                    label = $"{p.Name} field count",
+                    data = data.Select(x => x.FieldCount[index]),
+                    borderColor = _colors[index],
+                    backgroundColor = _colors[index],
+                    borderWidth = 3,
+                    pointRadius = 0
+                }))
+            });
 
         }
     }
