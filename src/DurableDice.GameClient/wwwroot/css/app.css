@@ -345,9 +345,9 @@ button {
 }
 
 .player-3, .player-3 > * {
-    /* OrangeYellow20 */
-    background-color: #986f0b;
-    border-color: #986f0b;
+    /* Orange20 */
+    background-color: #ca5010;
+    border-color: #ca5010;
 }
 
 .player-4, .player-4 > * {
@@ -369,9 +369,9 @@ button {
 }
 
 .player-7, .player-7 > * {
-    /* Orange20 */
-    background-color: #ca5010;
-    border-color: #ca5010;
+    /* OrangeYellow20 */
+    background-color: #986f0b;
+    border-color: #986f0b;
 }
 
 

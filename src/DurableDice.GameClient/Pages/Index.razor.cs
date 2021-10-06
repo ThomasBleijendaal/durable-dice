@@ -33,11 +33,11 @@ public partial class Index
         "#ffc83d",
         "#e3008c",
         "#4f6bed",
-        "#986f0b",
+        "#ca5010",
         "#00b294",
         "#498205",
         "#881798",
-        "#ca5010"
+        "#986f0b"
     };
 
     private string ServerEndpoint => NavManager.BaseUri.Contains("localhost")
