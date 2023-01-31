@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using DurableDice.Common.Abstractions;
 using DurableDice.Common.Models.Commands;
-using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
 using DurableDice.Functions.Entities;
 using DurableDice.Functions.Extensions;
@@ -31,6 +30,7 @@ public class GameHub : ServerlessHub
         }
         catch
         {
+            // don't care
         }
 
         return null;
@@ -80,6 +80,15 @@ public class GameHub : ServerlessHub
         => await durableClient.SignalEntityAsync<IGameEntity>(
             EntityId(invocationContext.GetGameId()),
             x => x.ReadyAsync(invocationContext.GetPlayerId()));
+
+    [FunctionName(nameof(ReadyWithRules))]
+    public async Task ReadyWithRules(
+        [SignalRTrigger] InvocationContext invocationContext,
+        ReadyPlayerCommand command,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(invocationContext.GetGameId()),
+            x => x.ReadyWithRulesAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
     [FunctionName(nameof(AttackField))]
     public async Task AttackField(

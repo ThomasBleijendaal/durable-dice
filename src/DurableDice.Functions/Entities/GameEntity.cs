@@ -106,7 +106,9 @@ public class GameEntity : GameState, IGameEntity
         {
             Fields.ForEach(x => x.DiceAdded = 0);
 
-            var diceBuffer = Geometry.GetLargestContinuousFieldBlock(playerId) + ActivePlayer.DiceBuffer;
+            var multiplier = Rules.DiceGenerationMultiplier + (Players.Count(x => x.ContinuousFieldCount == 0) * Rules.DeadPlayerMultiplier);
+
+            var diceBuffer = (int)((Geometry.GetLargestContinuousFieldBlock(playerId) * multiplier) + ActivePlayer.DiceBuffer);
 
             diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
 
@@ -138,15 +140,27 @@ public class GameEntity : GameState, IGameEntity
         await DistributeStateAsync();
     }
 
+    public async Task ReadyWithRulesAsync(ReadyPlayerCommand command)
+    {
+        if (Players.ElementAtOrDefault(0)?.Id == command.PlayerId)
+        {
+            Rules = command.GameRules;
+        }
+
+        await ReadyAsync(command.PlayerId);
+    }
+
     public async Task ReadyAsync(string playerId)
     {
         Players.First(x => x.Id == playerId).IsReady = true;
 
         if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
+            Rules.EnsureValidRules();
+
             ActivePlayerId = Players[RandomNumberGenerator.GetInt32(Players.Count)].Id;
 
-            var fieldCountPerPlayer = 32 / Players.Count;
+            var fieldCountPerPlayer = (32 / Players.Count) * (Rules.StartDiceCountPerField - 1);
 
             Fields = FieldGenerator.GenerateFields(Players);
 
@@ -158,6 +172,8 @@ public class GameEntity : GameState, IGameEntity
             CalculateContinuousFieldCountsForAllPlayers();
 
             Fields.ForEach(x => x.DiceAdded = 0);
+
+            Players.ForEach(x => x.DiceBuffer = Rules.InitialDiceBuffer);
         }
 
         await DistributeStateAsync();

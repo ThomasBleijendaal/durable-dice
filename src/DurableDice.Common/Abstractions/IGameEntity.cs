@@ -12,6 +12,8 @@ public interface IGameEntity
 
     Task RemovePlayerAsync(string playerId);
 
+    Task ReadyWithRulesAsync(ReadyPlayerCommand command);
+
     Task ReadyAsync(string playerId);
 }
 

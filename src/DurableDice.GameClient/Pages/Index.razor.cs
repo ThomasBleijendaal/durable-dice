@@ -147,7 +147,15 @@ public partial class Index
     private async Task ReadyAsync()
     {
         _sending = true;
-        await _gameEntity.ReadyAsync(_playerId);
+
+        if (_gameState?.PlayerIsOwner(_playerId) ?? false)
+        {
+            await _gameEntity.ReadyWithRulesAsync(new ReadyPlayerCommand(_playerId, _gameState.Rules));
+        }
+        else
+        {
+            await _gameEntity.ReadyAsync(_playerId);
+        }
     }
 
     private async Task EndRoundAsync()

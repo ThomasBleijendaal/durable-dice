@@ -7,219 +7,275 @@
 
 @if (!_connected)
 {
-	<p class="connection-state">Connecting..</p>
+    <p class="connection-state">Connecting..</p>
 }
 
 @if (string.IsNullOrEmpty(_playerName))
 {
-	<input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
-	<button @onclick="JoinAsync" class=@_buttonClassName>Join</button>
+    <input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
+    <button @onclick="JoinAsync" class=@_buttonClassName>Join</button>
 }
 else if (_gameState == null)
 {
-	<p class="loading">Loading..</p>
+    <p class="loading">Loading..</p>
 }
 else if (_gameState != null)
 {
-	<div class="players">
-		@foreach (var (player, index) in _players)
-		{
-			var fields = _gameState.PlayerFieldCount(player);
-			var className = $"player player-{index}";
-			if (player.Id == _gameState.ActivePlayerId)
-			{
-				className += " player-active";
-			}
-			if (player.Id == _playerId)
-			{
-				className += " player-you";
-			}
-			if (fields == 0)
-			{
-				className += " player-dead";
-			}
-			if (!player.IsReady)
-			{
-				className += " player-not-ready";
-			}
+    <div class="players">
+        @foreach (var (player, index) in _players)
+        {
+            var fields = _gameState.PlayerFieldCount(player);
+            var className = $"player player-{index}";
+            if (player.Id == _gameState.ActivePlayerId)
+            {
+                className += " player-active";
+            }
+            if (player.Id == _playerId)
+            {
+                className += " player-you";
+            }
+            if (fields == 0)
+            {
+                className += " player-dead";
+            }
+            if (!player.IsReady)
+            {
+                className += " player-not-ready";
+            }
 
-			<div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@index'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
-				@player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
-			</div>
-		}
-	</div>
+            <div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@index'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
+                @player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
+            </div>
+        }
+    </div>
 
-	if (!_gameState.Fields.Any())
-	{
-		<div class="buttons">
-			@if (!_gameState.Player(_playerId).IsReady)
-			{
-				<button @onclick="ReadyAsync" class=@_buttonClassName>Ready</button>
-			}
-		</div>
-	}
+    if (!_gameState.Fields.Any())
+    {
+        <div class="buttons">
+            @if (!_gameState.Player(_playerId).IsReady)
+            {
+                <button @onclick="ReadyAsync" class=@_buttonClassName>Ready</button>
+            }
+        </div>
+    }
 
-	if (_gameState.Winner is Player winner)
-	{
-		<p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
-	}
+    if (_gameState.Winner is Player winner)
+    {
+        <p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
+    }
 
-	if (_gameState.Fields.Any())
-	{
-		if (_gameState.Winner == null)
-		{
-			<div class="buttons">
-				@if (_gameState.PlayerIsDead(_playerId))
-				{
-					<p>You are dead.</p>
-				}
-				else if (_gameState.ActivePlayerId == _playerId)
-				{
-					<p>It's your turn! Click on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
-				}
-				else
-				{
-					<p>Please wait for your turn.</p>
-				}
-			</div>
-		}
+    if (!_gameState.Fields.Any())
+    {
+        <div class="init">
+            <p><strong>Game rules</strong></p>
 
-		<div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
-			@foreach (var (field, index) in _fields)
-			{
-				var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
-				var fieldModifier = field.Id[^1];
-				var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
-				var modifierClassName = "modifier";
-				var labelClassName = "label";
+            <p>Durable Dice is a turn-based strategy game in which you must capture all fields.</p>
 
-				if (_gameState.ActivePlayerId == _playerId)
-				{
-					if (_playerId == field.OwnerId && field.DiceCount > 1 ||
-					(field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
-					{
-						className += " field-attackable";
-						labelClassName += " field-attackable";
-					}
+            <p>
+                When attacking a field, your dice must win from the defending dice. If you win a battle,
+                all but one dice are moved to the captured field. You can attack any number of fields in
+                your turn, as long as the attacking field has 2 or more dice.
+            </p>
 
-					if (field.Id == _fromFieldId)
-					{
-						labelClassName += " label-attack";
-					}
-					if (field.Id == _toFieldId)
-					{
-						labelClassName += " label-defend";
-					}
-				}
+            <p>
+                At the end of your turn, new dice are added randomly to your fields. The number of
+                new dice is equal to the biggest number of contiguous fields, so make sure you keep
+                your fields together.
+            </p>
 
-				if (field.Id != _fromFieldId)
-				{
-					if (_gameState.PreviousAttack?.IsSuccessful == true && field.Id == _gameState.PreviousAttack?.DefendingFieldId)
-					{
-						modifierClassName += " mod-attacking-success";
-					}
-					else if (_gameState.PreviousAttack?.IsSuccessful == false && field.Id == _gameState.PreviousAttack?.AttackingFieldId)
-					{
-						modifierClassName += " mod-defending-success";
-					}
+            <hr>
 
-					if (field.DiceAdded > 0)
-					{
-						modifierClassName += $" mod-{field.DiceAdded}-dice-added";
-					}
-				}
+            <p>Share url to invite your friends:<br /><code>@(NavManager.Uri)</code></p>
 
-				if (_gameHistoryFields != null)
-				{
-					var historyData = _gameHistoryFields.First(x => x.FieldId == field.Id);
+            <hr />
 
-					var maxActions = _gameHistoryFields.Max(x => x.NumberOfActions);
-					if (maxActions > 0)
-					{
-						var heat = (10.0 * historyData.NumberOfActions) / maxActions;
+            @if (_gameState.PlayerIsOwner(_playerId))
+            {
+                <EditForm Model="@(_gameState.Rules)">
+                    <p>
+                        <label>
+                            Start dice per field (1-8)
+                            <InputNumber @bind-Value="@(_gameState.Rules.StartDiceCountPerField)" min="1" max="8" step="1" />
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            Initial dice buffer (0-50)
+                            <InputNumber @bind-Value="@(_gameState.Rules.InitialDiceBuffer)" min="0" max="50" step="1" />
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            Dice generation multiplier (1.0 - 10.0)
+                            <InputNumber @bind-Value="@(_gameState.Rules.DiceGenerationMultiplier)" min="1" max="10" />
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            Dead player count dice generation multiplier (0.0 - 2.0)
+                            <InputNumber @bind-Value="@(_gameState.Rules.DeadPlayerMultiplier)" min="0" max="2" />
+                        </label>
+                    </p>
+                </EditForm>
+            }
+        </div>
+    }
+    else
+    {
+        if (_gameState.Winner == null)
+        {
+            <div class="buttons">
+                @if (_gameState.PlayerIsDead(_playerId))
+                {
+                    <p>You are dead.</p>
+                }
+                else if (_gameState.ActivePlayerId == _playerId)
+                {
+                    <p>It's your turn! Click on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
+                }
+                else
+                {
+                    <p>Please wait for your turn.</p>
+                }
+            </div>
+        }
 
-						var heatClass = $" heat-{heat:0}";
+        <div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
+            @foreach (var (field, index) in _fields)
+            {
+                var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
+                var fieldModifier = field.Id[^1];
+                var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
+                var modifierClassName = "modifier";
+                var labelClassName = "label";
 
-						className += heatClass;
-					}
-				}
+                if (_gameState.ActivePlayerId == _playerId)
+                {
+                    if (_playerId == field.OwnerId && field.DiceCount > 1 ||
+                    (field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+                    {
+                        className += " field-attackable";
+                        labelClassName += " field-attackable";
+                    }
 
-				@foreach (var coordinate in field.Coordinates)
-				{
-					var (left, top) = Position(coordinate);
+                    if (field.Id == _fromFieldId)
+                    {
+                        labelClassName += " label-attack";
+                    }
+                    if (field.Id == _toFieldId)
+                    {
+                        labelClassName += " label-defend";
+                    }
+                }
 
-					<div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
-						<div class="left"></div>
-						<div class="middle"></div>
-						<div class="right"></div>
-						<div class="hover">
-							<div class="left"></div>
-							<div class="middle"></div>
-							<div class="right"></div>
-							<div class=@modifierClassName>
-								<div class="left"></div>
-								<div class="middle"></div>
-								<div class="right"></div>
-							</div>
-						</div>
-					</div>
-				}
+                if (field.Id != _fromFieldId)
+                {
+                    if (_gameState.PreviousAttack?.IsSuccessful == true && field.Id == _gameState.PreviousAttack?.DefendingFieldId)
+                    {
+                        modifierClassName += " mod-attacking-success";
+                    }
+                    else if (_gameState.PreviousAttack?.IsSuccessful == false && field.Id == _gameState.PreviousAttack?.AttackingFieldId)
+                    {
+                        modifierClassName += " mod-defending-success";
+                    }
 
-				{
-					var (left, top) = Position(field.Center);
+                    if (field.DiceAdded > 0)
+                    {
+                        modifierClassName += $" mod-{field.DiceAdded}-dice-added";
+                    }
+                }
 
-					<div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
-						@field.DiceCount
-					</div>
-				}
-			}
-		</div>
+                if (_gameHistoryFields != null)
+                {
+                    var historyData = _gameHistoryFields.First(x => x.FieldId == field.Id);
 
-		@if (_gameHistoryPlayers == null && _gameState.PreviousAttack is Attack attack)
-		{
-			<div class="attack">
-				<div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">
-					@foreach (var die in @attack.AttackingDiceCount)
-					{
-						<Die Count=die />
-					}
-				</div>
-				<div class="attacked">@DescribeAttack(attack)</div>
-				<div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">
-					@foreach (var die in @attack.DefendingDiceCount)
-					{
-						<Die Count=die />
-					}
-				</div>
-			</div>
-		}
-	}
+                    var maxActions = _gameHistoryFields.Max(x => x.NumberOfActions);
+                    if (maxActions > 0)
+                    {
+                        var heat = (10.0 * historyData.NumberOfActions) / maxActions;
 
-	@if (_gameHistoryPlayers != null)
-	{
-		<table>
-			<thead>
-				<tr>
-					<td>Player</td>
-					<td>Fields captured</td>
-					<td>Fields lost</td>
-				</tr>
-			</thead>
+                        var heatClass = $" heat-{heat:0}";
 
-			<tbody>
-				@foreach (var player in _gameHistoryPlayers)
-				{
-					var p = _players.First(x => x.player.Id == player.PlayerId);
+                        className += heatClass;
+                    }
+                }
 
-					<tr>
-						<td>@p.player.Name</td>
-						<td>@player.NumberOfFieldsCaptured</td>
-						<td>@player.NumberOfFieldsLost</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
+                @foreach (var coordinate in field.Coordinates)
+                {
+                    var (left, top) = Position(coordinate);
+
+                    <div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                        <div class="left"></div>
+                        <div class="middle"></div>
+                        <div class="right"></div>
+                        <div class="hover">
+                            <div class="left"></div>
+                            <div class="middle"></div>
+                            <div class="right"></div>
+                            <div class=@modifierClassName>
+                                <div class="left"></div>
+                                <div class="middle"></div>
+                                <div class="right"></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                {
+                    var (left, top) = Position(field.Center);
+
+                    <div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                        @field.DiceCount
+                    </div>
+                }
+            }
+        </div>
+
+        @if (_gameHistoryPlayers == null && _gameState.PreviousAttack is Attack attack)
+        {
+            <div class="attack">
+                <div class="attacker player-@(_gameState.PlayerIndex(attack.AttackerId))">
+                    @foreach (var die in @attack.AttackingDiceCount)
+                    {
+                        <Die Count=die />
+                    }
+                </div>
+                <div class="attacked">@DescribeAttack(attack)</div>
+                <div class="defender player-@(_gameState.PlayerIndex(attack.DefenderId))">
+                    @foreach (var die in @attack.DefendingDiceCount)
+                    {
+                        <Die Count=die />
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    @if (_gameHistoryPlayers != null)
+    {
+        <table>
+            <thead>
+                <tr>
+                    <td>Player</td>
+                    <td>Fields captured</td>
+                    <td>Fields lost</td>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var player in _gameHistoryPlayers)
+                {
+                    var p = _players.First(x => x.player.Id == player.PlayerId);
+
+                    <tr>
+                        <td>@p.player.Name</td>
+                        <td>@player.NumberOfFieldsCaptured</td>
+                        <td>@player.NumberOfFieldsLost</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 <canvas id="myChart" width="720" height="720"></canvas>

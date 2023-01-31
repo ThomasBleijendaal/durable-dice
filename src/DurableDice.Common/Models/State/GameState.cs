@@ -1,4 +1,5 @@
-﻿using DurableDice.Common.Enums;
+﻿using System.Diagnostics.SymbolStore;
+using DurableDice.Common.Enums;
 using DurableDice.Common.Geometry;
 using Newtonsoft.Json;
 
@@ -24,6 +25,9 @@ public class GameState
 
     [JsonProperty]
     public Attack? PreviousAttack { get; set; }
+
+    [JsonProperty]
+    public GameRules Rules { get; set; } = new GameRules();
 
     private FieldGeometry? _geomertry;
 
@@ -51,6 +55,9 @@ public class GameState
 
     public bool PlayerIsDead(string playerId)
         => !Fields.Any(x => x.OwnerId == playerId);
+
+    public bool PlayerIsOwner(string playerId)
+        => Players.ElementAtOrDefault(0)?.Id == playerId;
 
     public Player Player(string playerId)
         => Players.First(x => x.Id == playerId);

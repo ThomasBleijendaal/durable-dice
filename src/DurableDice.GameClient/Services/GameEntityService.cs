@@ -61,6 +61,12 @@ public class GameEntityService : IGameEntity
         await _connection.SendAsync("Ready");
     }
 
+    public async Task ReadyWithRulesAsync(ReadyPlayerCommand command)
+    {
+        await _init;
+        await _connection.SendAsync("ReadyWithRules", command);
+    }
+
     private Task Reconnecting(Exception? arg)
     {
         ConnectionState?.Invoke(false);

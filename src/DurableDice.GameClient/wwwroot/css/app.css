@@ -123,6 +123,25 @@ button {
         color: white;
     }
 
+    .init {
+        display: block;
+        width: 90%;
+        margin: 0 auto;
+    }
+
+    p {
+        color: white;
+    }
+
+    form .label {
+        color: white;
+    }
+
+    form input {
+        display: block;
+        float: right;
+    }
+
 .hexagon {
     position: absolute;
     width: 26px;
