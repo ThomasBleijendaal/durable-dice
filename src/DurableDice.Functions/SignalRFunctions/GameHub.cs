@@ -118,7 +118,7 @@ public class GameHub : ServerlessHub
     [FunctionName(nameof(OnDisconnected))]
     public void OnDisconnected([SignalRTrigger] InvocationContext invocationContext)
     {
-
+        // do nothing
     }
 
     private static EntityId EntityId(string gameId) => new EntityId(nameof(GameEntity), gameId);
