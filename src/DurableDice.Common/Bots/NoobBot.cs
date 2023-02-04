@@ -1,15 +1,14 @@
 ﻿using DurableDice.Common.Abstractions;
-using DurableDice.Common.Extensions;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
 
 namespace DurableDice.Common.Bots;
 
-internal class NoobBot : IBot
+internal class CheezyBot : IBot
 {
     private readonly BotState _botState;
 
-    public NoobBot(
+    public CheezyBot(
         BotState botState)
     {
         _botState = botState;

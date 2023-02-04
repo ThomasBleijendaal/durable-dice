@@ -24,4 +24,14 @@ public class Field
     public Coordinate Center { get; set; }
 
     public int MaxDiceAllowedToAdd => 8 - DiceCount;
+
+    public Field Copy(string ownerId) => new Field
+    {
+        Id = Id,
+        OwnerId = ownerId,
+        DiceCount = DiceCount,
+        DiceAdded = DiceAdded,
+        Coordinates = Coordinates,
+        Center = Center
+    };
 }

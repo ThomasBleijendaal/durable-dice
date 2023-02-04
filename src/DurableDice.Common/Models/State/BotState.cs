@@ -27,4 +27,29 @@ internal class BotState
     public IEnumerable<Field> StrongestFieldNear(Field enemyField) => OwnFields
         .Where(x => _geometry.AreNeighboringFields(x.Id, enemyField.Id))
         .OrderByDescending(x => x.DiceCount);
+
+    public IEnumerable<Field> VulnerableFields
+    {
+        get
+        {
+            var currentFieldSize = _geometry.GetLargestContinuousFieldBlock(PlayerId);
+
+            return OwnFields.OrderByDescending(field =>
+                new FieldGeometry(OwnFields.Except(new[] { field }))
+                    .GetLargestContinuousFieldBlock(PlayerId) / currentFieldSize);
+        }
+    }
+
+    public IEnumerable<Field> MostAdvantagousAttackableNeighboringEnemyFields
+    {
+        get
+        {
+            var currentFieldSize = _geometry.GetLargestContinuousFieldBlock(PlayerId);
+
+            return AttackableNeighboringEnemyFields
+                .OrderByDescending(field =>
+                    new FieldGeometry(OwnFields.Append(field.Copy(PlayerId)))
+                        .GetLargestContinuousFieldBlock(PlayerId) / currentFieldSize);
+        }
+    }
 }

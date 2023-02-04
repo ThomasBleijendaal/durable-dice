@@ -48,7 +48,7 @@ public class GameEntity : GameState, IGameEntity
         Players.Add(new Player
         {
             Id = Guid.NewGuid().ToString(),
-            Name = "BOT",
+            Name = BotHelper.BotName(command.BotType, Players.Count),
             BotType = command.BotType,
             IsReady = true
         });
@@ -232,7 +232,10 @@ public class GameEntity : GameState, IGameEntity
         {
             var allBots = Players.Where(x => x.ContinuousFieldCount > 0).All(x => x.BotType.HasValue);
 
-            await Task.Delay(allBots ? 5 : 500);
+            if (!allBots)
+            {
+                await Task.Delay(500);
+            }
 
             var bot = BotHelper.BuidBot(this, ActivePlayer);
 

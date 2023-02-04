@@ -144,11 +144,19 @@ public partial class Index
         }
     }
 
-    private async Task AddNoobAsync()
+    private async Task AddCheezyBotAsync()
     {
         if (_gameState?.PlayerIsOwner(_playerId) ?? false)
         {
-            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.Noob));
+            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.CheezyBot));
+        }
+    }
+
+    private async Task AddStrategicBotAsync()
+    {
+        if (_gameState?.PlayerIsOwner(_playerId) ?? false)
+        {
+            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.StrategicBot));
         }
     }
 
