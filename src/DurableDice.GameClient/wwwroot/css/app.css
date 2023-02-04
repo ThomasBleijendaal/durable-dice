@@ -345,6 +345,7 @@ button {
                 grid-area: g;
             }
 
+            /* TODO: improve how this looks */
             .move p {
                 text-align: center;
                 display: block;

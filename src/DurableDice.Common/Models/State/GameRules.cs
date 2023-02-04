@@ -31,7 +31,7 @@ public class GameRules
         StartDiceCountPerField = Math.Max(1, Math.Min(8, StartDiceCountPerField));
         InitialDiceBuffer = Math.Max(0, Math.Min(16, InitialDiceBuffer));
         MaxDiceMovedPerTurn = Math.Max(0, Math.Min(16, MaxDiceMovedPerTurn));
-        DiceGenerationMultiplier = Math.Max(1.0, Math.Min(10.0, InitialDiceBuffer));
+        DiceGenerationMultiplier = Math.Max(1.0, Math.Min(10.0, DiceGenerationMultiplier));
         DeadPlayerMultiplier = Math.Max(0.0, Math.Min(2.0, DeadPlayerMultiplier));
     }
 }

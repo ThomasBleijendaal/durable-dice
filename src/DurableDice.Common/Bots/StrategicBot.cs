@@ -16,6 +16,7 @@ internal class StrategicBot : IBot
 
     public MoveCommand? MakeMove()
     {
+        // TODO: target the biggest enemy first
         var mostEffectiveAttack = _botInsight.MostAdvantagousAttackableNeighboringEnemyFields
             .FirstOrDefault(x => _botInsight.StrongestFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
 
@@ -24,6 +25,7 @@ internal class StrategicBot : IBot
             return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, mostEffectiveAttack.Id);
         }
 
+        // TODO: prevent hopping between the same fields
         if (_botInsight.GameState.ActivePlayer.DiceMovesThisTurn < _botInsight.GameState.Rules.MaxDiceMovedPerTurn)
         {
             var vulnerableFields = _botInsight.VulnerableFields.ToList();
