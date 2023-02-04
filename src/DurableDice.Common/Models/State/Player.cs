@@ -16,6 +16,9 @@ public class Player
     public int DiceBuffer { get; set; }
 
     [JsonProperty]
+    public int DiceMovesThisTurn { get; set; }
+
+    [JsonProperty]
     public int ContinuousFieldCount { get; set; }
 
     [JsonProperty]

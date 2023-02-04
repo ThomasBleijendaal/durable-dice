@@ -4,5 +4,5 @@ namespace DurableDice.Common.Abstractions;
 
 public interface IBot
 {
-    AttackMoveCommand? MakeMove();
+    MoveCommand? MakeMove();
 }

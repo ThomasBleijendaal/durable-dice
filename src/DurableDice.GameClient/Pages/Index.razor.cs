@@ -198,10 +198,10 @@ public partial class Index
         {
             _fromFieldId = "";
         }
-        else if (field.OwnerId != _playerId && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
+        else if (_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
         {
             _toFieldId = field.Id;
-            await _gameEntity.AttackFieldAsync(new AttackMoveCommand(_playerId, _fromFieldId, field.Id));
+            await _gameEntity.MoveFieldAsync(new MoveCommand(_playerId, _fromFieldId, field.Id));
             _attacking = true;
         }
 

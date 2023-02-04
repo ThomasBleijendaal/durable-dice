@@ -8,7 +8,7 @@ public interface IGameEntity
 
     Task AddPlayerAsync(AddPlayerCommand command);
 
-    Task AttackFieldAsync(AttackMoveCommand command);
+    Task MoveFieldAsync(MoveCommand command);
 
     Task EndRoundAsync(string playerId);
 

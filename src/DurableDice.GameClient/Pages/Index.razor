@@ -96,6 +96,10 @@ else if (_gameState != null)
 
                 <hr>
 
+                <p>These settings allow you to tweak the rules. Make only minor adjustments as these quickly
+                    ramp up the insanity of this game.
+                </p>
+
                 <EditForm Model="@(_gameState.Rules)">
                     <p>
                         <label>
@@ -105,8 +109,14 @@ else if (_gameState != null)
                     </p>
                     <p>
                         <label>
-                            Initial dice buffer (0-50)
+                            Initial dice buffer (0-16)
                             <InputNumber @bind-Value="@(_gameState.Rules.InitialDiceBuffer)" min="0" max="50" step="1" />
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            Max dice moves per turn (0-16)
+                            <InputNumber @bind-Value="@(_gameState.Rules.MaxDiceMovedPerTurn)" min="0" max="50" step="1" />
                         </label>
                     </p>
                     <p>
@@ -188,6 +198,11 @@ else if (_gameState != null)
                     {
                         modifierClassName += $" mod-{field.DiceAdded}-dice-added";
                     }
+
+                    if (field.Id == _gameState.PreviousMove?.AddedFieldId) 
+                    {
+                        modifierClassName += $" mod-{_gameState.PreviousMove.Count}-dice-added";
+                    }
                 }
 
                 if (_gameHistoryFields != null)
@@ -252,6 +267,13 @@ else if (_gameState != null)
                         <Die Count=die />
                     }
                 </div>
+            </div>
+        }
+
+        @if (_gameHistoryPlayers == null && _gameState.PreviousMove is Move move)
+        {
+            <div class="move player-@(_gameState.PlayerIndex(_gameState.ActivePlayer.Id))">
+                <p>@(_gameState.ActivePlayer.Name) moved @(move.Count) dice</p>
             </div>
         }
     }

@@ -43,10 +43,10 @@ public class GameEntityService : IGameEntity
         await _connection.SendAsync("AddPlayer", command);
     }
 
-    public async Task AttackFieldAsync(AttackMoveCommand command)
+    public async Task MoveFieldAsync(MoveCommand command)
     {
         await _init;
-        await _connection.SendAsync("AttackField", command);
+        await _connection.SendAsync("MoveField", command);
     }
 
     public async Task EndRoundAsync(string playerId)

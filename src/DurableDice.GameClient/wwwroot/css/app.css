@@ -267,7 +267,7 @@ button {
     animation: fade 2s forwards;
 }
 
-.attack {
+.attack, .move {
     margin: 1rem;
     width: 100%;
     clear: both;
@@ -343,6 +343,14 @@ button {
             /* This selects the last pip of odd-valued dice (1, 3, 5) and positions the pip in the center */
             .attack .die .pip:nth-child(odd):last-child {
                 grid-area: g;
+            }
+
+            .move p {
+                text-align: center;
+                display: block;
+                padding: 10px;
+                line-height: 3em;
+                color: black;
             }
 
 .player-0, .player-0 > * {

@@ -6,22 +6,38 @@ namespace DurableDice.Common.Bots;
 
 internal class StrategicBot : IBot
 {
-    private readonly BotState _botState;
+    private readonly BotInsight _botInsight;
 
     public StrategicBot(
-        BotState botState)
+        BotInsight botInsight)
     {
-        _botState = botState;
+        _botInsight = botInsight;
     }
 
-    public AttackMoveCommand? MakeMove()
+    public MoveCommand? MakeMove()
     {
-        var mostEffectiveAttack = _botState.MostAdvantagousAttackableNeighboringEnemyFields
-            .FirstOrDefault(x => _botState.StrongestFieldNear(x).Any(y => x.DiceCount < y.DiceCount));
+        var mostEffectiveAttack = _botInsight.MostAdvantagousAttackableNeighboringEnemyFields
+            .FirstOrDefault(x => _botInsight.StrongestFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
 
-        if (mostEffectiveAttack != null && _botState.StrongestFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
+        if (mostEffectiveAttack != null && _botInsight.StrongestFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
         {
-            return new AttackMoveCommand(_botState.PlayerId, strongestField.Id, mostEffectiveAttack.Id);
+            return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, mostEffectiveAttack.Id);
+        }
+
+        if (_botInsight.GameState.ActivePlayer.DiceMovesThisTurn < _botInsight.GameState.Rules.MaxDiceMovedPerTurn)
+        {
+            var vulnerableFields = _botInsight.VulnerableFields.ToList();
+
+            var mostImprovingMove = vulnerableFields
+                .Where(x => x.DiceCount < 4)
+                .SelectMany(protect => _botInsight.StrongestFieldNear(protect).Where(donor => donor.DiceCount > 1).Select(donor => (protect, donor)))
+                .OrderByDescending(combo => vulnerableFields.IndexOf(combo.protect) - vulnerableFields.IndexOf(combo.donor))
+                .FirstOrDefault();
+
+            if (mostImprovingMove != default)
+            {
+                return new MoveCommand(_botInsight.ActivePlayerId, mostImprovingMove.donor.Id, mostImprovingMove.protect.Id);
+            }
         }
 
         return null;

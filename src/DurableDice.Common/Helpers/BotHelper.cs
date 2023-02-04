@@ -7,14 +7,14 @@ namespace DurableDice.Common.Helpers;
 
 public static class BotHelper
 {
-    public static IBot BuidBot(GameState gameState, Player activePlayer)
+    public static IBot BuildBot(GameState gameState)
     {
-        var state = new BotState(activePlayer.Id, gameState.Fields);
+        var insight = new BotInsight(gameState, gameState.Fields);
 
-        return activePlayer.BotType switch
+        return gameState.ActivePlayer.BotType switch
         {
-            BotType.CheezyBot => new CheezyBot(state),
-            BotType.StrategicBot => new StrategicBot(state),
+            BotType.CheezyBot => new CheezyBot(insight),
+            BotType.StrategicBot => new StrategicBot(insight),
 
             _ => new NullBot()
         };

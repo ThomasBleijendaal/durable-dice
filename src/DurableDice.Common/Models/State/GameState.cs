@@ -26,6 +26,9 @@ public class GameState
     public Attack? PreviousAttack { get; set; }
 
     [JsonProperty]
+    public Move? PreviousMove { get; set; }
+
+    [JsonProperty]
     public GameRules Rules { get; set; } = new GameRules();
 
     private FieldGeometry? _geomertry;

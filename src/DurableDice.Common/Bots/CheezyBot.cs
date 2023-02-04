@@ -6,23 +6,23 @@ namespace DurableDice.Common.Bots;
 
 internal class CheezyBot : IBot
 {
-    private readonly BotState _botState;
+    private readonly BotInsight _botInsight;
 
     public CheezyBot(
-        BotState botState)
+        BotInsight botInsight)
     {
-        _botState = botState;
+        _botInsight = botInsight;
     }
 
-    public AttackMoveCommand? MakeMove()
+    public MoveCommand? MakeMove()
     {
-        var randomEnemyField = _botState.AttackableNeighboringEnemyFields.OrderBy(x => x.DiceCount).FirstOrDefault();
+        var randomEnemyField = _botInsight.AttackableNeighboringEnemyFields.OrderBy(x => x.DiceCount).FirstOrDefault();
         if (randomEnemyField == null)
         {
             return null;
         }
 
-        var strongestField = _botState.StrongestFieldNear(randomEnemyField).FirstOrDefault();
+        var strongestField = _botInsight.StrongestFieldNear(randomEnemyField).FirstOrDefault();
         if (strongestField == null)
         {
             return null;
@@ -32,7 +32,7 @@ internal class CheezyBot : IBot
         {
             return null;
         }
-
-        return new AttackMoveCommand(_botState.PlayerId, strongestField.Id, randomEnemyField.Id);
+        
+        return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, randomEnemyField.Id);
     }
 }

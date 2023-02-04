@@ -72,7 +72,7 @@ public class GameEntity : GameState, IGameEntity
         await DistributeStateAsync();
     }
 
-    public async Task AttackFieldAsync(AttackMoveCommand command)
+    public async Task MoveFieldAsync(MoveCommand command)
     {
         var fromField = Fields.FirstOrDefault(x => x.Id == command.FromFieldId);
         var toField = Fields.FirstOrDefault(x => x.Id == command.ToFieldId);
@@ -80,40 +80,24 @@ public class GameEntity : GameState, IGameEntity
         if (fromField == null ||
             toField == null ||
             fromField.OwnerId != command.PlayerId ||
-            command.PlayerId != ActivePlayerId ||
             fromField.DiceCount <= 1 ||
             !Geometry.AreNeighboringFields(fromField.Id, toField.Id))
         {
             return;
         }
 
-        Fields.ForEach(x => x.DiceAdded = 0);
+        PreviousMove = null;
+        PreviousAttack = null;
 
-        var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount).ToList();
-        var defendThrow = DiceHelper.ThrowDice(toField.DiceCount).ToList();
-
-        PreviousAttack = new Attack
+        if (toField.OwnerId != ActivePlayerId)
         {
-            AttackerId = fromField.OwnerId,
-            AttackingFieldId = command.FromFieldId,
-            AttackingDiceCount = attackThrow,
-            DefenderId = toField.OwnerId,
-            DefendingFieldId = command.ToFieldId,
-            DefendingDiceCount = defendThrow,
-            IsSuccessful = attackThrow.Sum() > defendThrow.Sum()
-        };
-
-        if (PreviousAttack.IsSuccessful)
+            await AttackAsync(fromField, toField);
+        }
+        else if (ActivePlayer.DiceMovesThisTurn < Rules.MaxDiceMovedPerTurn)
         {
-            toField.DiceCount = fromField.DiceCount - 1;
-            toField.OwnerId = fromField.OwnerId;
+            Move(fromField, toField);
         }
 
-        fromField.DiceCount = 1;
-
-        CalculateContinuousFieldCountsForAllPlayers();
-
-        await _gameHistoryService.AddGameStateAsync(_gameId, this);
         await DistributeStateAsync();
     }
 
@@ -176,6 +160,61 @@ public class GameEntity : GameState, IGameEntity
         await DistributeStateAsync();
     }
 
+    private async Task AttackAsync(Field fromField, Field toField)
+    {
+        Fields.ForEach(x => x.DiceAdded = 0);
+
+        var attackThrow = DiceHelper.ThrowDice(fromField.DiceCount).ToList();
+        var defendThrow = DiceHelper.ThrowDice(toField.DiceCount).ToList();
+
+        PreviousAttack = new Attack
+        {
+            AttackerId = fromField.OwnerId,
+            AttackingFieldId = fromField.Id,
+            AttackingDiceCount = attackThrow,
+            DefenderId = toField.OwnerId,
+            DefendingFieldId = toField.Id,
+            DefendingDiceCount = defendThrow,
+            IsSuccessful = attackThrow.Sum() > defendThrow.Sum()
+        };
+
+        if (PreviousAttack.IsSuccessful)
+        {
+            toField.DiceCount = fromField.DiceCount - 1;
+            toField.OwnerId = fromField.OwnerId;
+        }
+
+        fromField.DiceCount = 1;
+
+        CalculateContinuousFieldCountsForAllPlayers();
+
+        await _gameHistoryService.AddGameStateAsync(_gameId, this);
+    }
+
+    private void Move(Field fromField, Field toField)
+    {
+        var diceToMove = Math.Min(Rules.MaxDiceMovedPerTurn - ActivePlayer.DiceMovesThisTurn, 
+            Math.Min(toField.MaxDiceAllowedToAdd, fromField.DiceCount - 1));
+
+        if (diceToMove == 0)
+        {
+            return;
+        }
+
+        fromField.DiceCount -= diceToMove;
+        toField.DiceCount += diceToMove;
+
+        PreviousMove = new Move
+        {
+            Count = diceToMove,
+            AddedFieldId = toField.Id
+        };
+
+        ActivePlayer.DiceMovesThisTurn += diceToMove;
+
+        return;
+    }
+
     private async Task<bool> HandleEndOfRoundAsync()
     {
         if (ActivePlayerId == null)
@@ -192,6 +231,7 @@ public class GameEntity : GameState, IGameEntity
         diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
 
         ActivePlayer.DiceBuffer = diceBuffer;
+        ActivePlayer.DiceMovesThisTurn = 0;
 
         var gameEnded = false;
 
@@ -205,6 +245,7 @@ public class GameEntity : GameState, IGameEntity
         }
 
         PreviousAttack = null;
+        PreviousMove = null;
 
         GameRound++;
 
@@ -237,14 +278,14 @@ public class GameEntity : GameState, IGameEntity
                 await Task.Delay(500);
             }
 
-            var bot = BotHelper.BuidBot(this, ActivePlayer);
+            var bot = BotHelper.BuildBot(this);
 
-            if (bot.MakeMove() is not AttackMoveCommand command)
+            if (bot.MakeMove() is not MoveCommand command)
             {
                 return;
             }
 
-            await AttackFieldAsync(command);
+            await MoveFieldAsync(command);
         }
         while (true);
     }
