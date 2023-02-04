@@ -6,7 +6,6 @@ using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
 using DurableDice.Common.Services;
 using DurableDice.Functions.SignalRFunctions;
-using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
@@ -17,27 +16,27 @@ public class GameEntity : GameState, IGameEntity
 {
     private readonly IAsyncCollector<SignalRMessage> _signalr;
     private readonly string _gameId;
-    private readonly GameHistoryService _gameHistoryService;
+    // TODO: restore
+    // private readonly GameHistoryService _gameHistoryService;
 
     public GameEntity(
         IAsyncCollector<SignalRMessage> signalr,
-        string gameId,
-        GameHistoryService gameHistoryService)
+        string gameId)
+        //GameHistoryService gameHistoryService)
     {
         _signalr = signalr;
         _gameId = gameId;
-        _gameHistoryService = gameHistoryService;
+        //_gameHistoryService = gameHistoryService;
     }
 
     [FunctionName(nameof(GameEntity))]
     public static Task ProxyGameEntityFunction(
         [EntityTrigger] IDurableEntityContext context,
-        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr,
-        [Table("history")] CloudTable tableClient)
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
             => context.DispatchAsync<GameEntity>(
                 signalr, 
-                context.EntityKey,
-                new GameHistoryService(tableClient));
+                context.EntityKey);
+                // new GameHistoryService(tableClient));
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
@@ -96,7 +95,7 @@ public class GameEntity : GameState, IGameEntity
 
         CalculateContinuousFieldCountsForAllPlayers();
 
-        await _gameHistoryService.AddGameStateAsync(_gameId, this);
+        //await _gameHistoryService.AddGameStateAsync(_gameId, this);
         await DistributeStateAsync();
     }
 
@@ -123,7 +122,7 @@ public class GameEntity : GameState, IGameEntity
 
             GameRound++;
 
-            await _gameHistoryService.AddGameStateAsync(_gameId, this);
+            //await _gameHistoryService.AddGameStateAsync(_gameId, this);
             await DistributeStateAsync();
         }
     }

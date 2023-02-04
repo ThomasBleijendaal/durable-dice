@@ -107,13 +107,13 @@ else if (_gameState != null)
                     <p>
                         <label>
                             Dice generation multiplier (1.0 - 10.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DiceGenerationMultiplier)" min="1" max="10" />
+                            <InputNumber @bind-Value="@(_gameState.Rules.DiceGenerationMultiplier)" min="1" max="10" step="0.01" />
                         </label>
                     </p>
                     <p>
                         <label>
                             Dead player count dice generation multiplier (0.0 - 2.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DeadPlayerMultiplier)" min="0" max="2" />
+                            <InputNumber @bind-Value="@(_gameState.Rules.DeadPlayerMultiplier)" min="0" max="2" step="0.01" />
                         </label>
                     </p>
                 </EditForm>

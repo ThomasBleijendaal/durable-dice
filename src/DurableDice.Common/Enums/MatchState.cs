@@ -1,9 +1,8 @@
-﻿namespace DurableDice.Common.Enums
+﻿namespace DurableDice.Common.Enums;
+
+public enum MatchState
 {
-    public enum MatchState
-    {
-        NotActive,
-        Active,
-        Finished
-    }
+    NotActive,
+    Active,
+    Finished
 }
