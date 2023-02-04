@@ -4,6 +4,8 @@ namespace DurableDice.Common.Abstractions;
 
 public interface IGameEntity
 {
+    Task AddBotAsync(AddBotCommand command);
+
     Task AddPlayerAsync(AddPlayerCommand command);
 
     Task AttackFieldAsync(AttackMoveCommand command);
@@ -16,4 +18,3 @@ public interface IGameEntity
 
     Task ReadyAsync(string playerId);
 }
-

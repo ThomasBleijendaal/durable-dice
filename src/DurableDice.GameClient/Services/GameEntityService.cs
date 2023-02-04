@@ -31,6 +31,12 @@ public class GameEntityService : IGameEntity
     public event Action<GameState>? NewStateReceived;
     public event Action<bool>? ConnectionState;
 
+    public async Task AddBotAsync(AddBotCommand command)
+    {
+        await _init;
+        await _connection.SendAsync("AddBot", command);
+    }
+
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
         await _init;

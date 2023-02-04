@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DurableDice.Common.Enums;
+using Newtonsoft.Json;
 
 namespace DurableDice.Common.Models.State;
 
@@ -19,4 +20,7 @@ public class Player
 
     [JsonProperty]
     public bool IsReady { get; set; }
+
+    [JsonProperty]
+    public BotType? BotType { get; set; }
 }

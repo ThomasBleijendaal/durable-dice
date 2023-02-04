@@ -29,5 +29,9 @@ public class GameHistoryService
     }
 
     public async Task<GameHistory?> GetGameHistoryAsync(string gameId)
-        => (await _tableClient.GetEntityAsync<GameHistory>(gameId, gameId)).Value;
+    {
+        var result = await _tableClient.GetEntityIfExistsAsync<GameHistory>(gameId, gameId);
+        
+        return !result.HasValue ? null : result.Value;
+    }
 }

@@ -1,6 +1,6 @@
-﻿using System.Text;
-using Blazored.LocalStorage;
+﻿using Blazored.LocalStorage;
 using DurableDice.Common.Abstractions;
+using DurableDice.Common.Enums;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
@@ -141,6 +141,14 @@ public partial class Index
             _playerName = _newPlayerName;
 
             await _gameEntity.AddPlayerAsync(new AddPlayerCommand(_playerId, _playerName));
+        }
+    }
+
+    private async Task AddNoobAsync()
+    {
+        if (_gameState?.PlayerIsOwner(_playerId) ?? false)
+        {
+            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.Noob));
         }
     }
 

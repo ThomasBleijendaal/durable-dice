@@ -87,10 +87,14 @@ else if (_gameState != null)
 
             <p>Share url to invite your friends:<br /><code>@(NavManager.Uri)</code></p>
 
-            <hr />
-
             @if (_gameState.PlayerIsOwner(_playerId))
             {
+                <hr>
+
+                <button @onclick="AddNoobAsync">Add noob bot</button>
+
+                <hr>
+
                 <EditForm Model="@(_gameState.Rules)">
                     <p>
                         <label>

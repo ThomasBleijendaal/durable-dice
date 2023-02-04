@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using DurableDice.Common.Abstractions;
+using DurableDice.Common.Extensions;
 using DurableDice.Common.Geometry;
 using DurableDice.Common.Helpers;
 using DurableDice.Common.Models.Commands;
@@ -33,9 +34,27 @@ public class GameEntity : GameState, IGameEntity
         [EntityTrigger] IDurableEntityContext context,
         [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
             => context.DispatchAsync<GameEntity>(
-                signalr, 
+                signalr,
                 context.EntityKey,
                 context.FunctionBindingContext.CreateObjectInstance<GameHistoryService>());
+
+    public async Task AddBotAsync(AddBotCommand command)
+    {
+        if (Players.Count == 8)
+        {
+            return;
+        }
+
+        Players.Add(new Player
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "BOT",
+            BotType = command.BotType,
+            IsReady = true
+        });
+
+        await DistributeStateAsync();
+    }
 
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
@@ -100,29 +119,9 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task EndRoundAsync(string playerId)
     {
-        if (ActivePlayerId == playerId)
+        if (ActivePlayerId == playerId && await HandleEndOfRoundAsync())
         {
-            Fields.ForEach(x => x.DiceAdded = 0);
-
-            var multiplier = Rules.DiceGenerationMultiplier + (Players.Count(x => x.ContinuousFieldCount == 0) * Rules.DeadPlayerMultiplier);
-
-            var diceBuffer = (int)((Geometry.GetLargestContinuousFieldBlock(playerId) * multiplier) + ActivePlayer.DiceBuffer);
-
-            diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
-
-            ActivePlayer.DiceBuffer = diceBuffer;
-
-            if (!Fields.All(x => x.OwnerId == playerId))
-            {
-                SelectNextActivePlayer(playerId);
-            }
-
-            PreviousAttack = null;
-
-            GameRound++;
-
-            await _gameHistoryService.AddGameStateAsync(_gameId, this);
-            await DistributeStateAsync();
+            await HandleBotsAsync();
         }
     }
 
@@ -156,7 +155,7 @@ public class GameEntity : GameState, IGameEntity
         {
             Rules.EnsureValidRules();
 
-            ActivePlayerId = Players[RandomNumberGenerator.GetInt32(Players.Count)].Id;
+            ActivePlayerId = Players.Where(x => !x.BotType.HasValue).RandomItem().Id;
 
             var fieldCountPerPlayer = (32 / Players.Count) * (Rules.StartDiceCountPerField - 1);
 
@@ -175,6 +174,76 @@ public class GameEntity : GameState, IGameEntity
         }
 
         await DistributeStateAsync();
+    }
+
+    private async Task<bool> HandleEndOfRoundAsync()
+    {
+        if (ActivePlayerId == null)
+        {
+            return false;
+        }
+
+        Fields.ForEach(x => x.DiceAdded = 0);
+
+        var multiplier = Rules.DiceGenerationMultiplier + (Players.Count(x => x.ContinuousFieldCount == 0) * Rules.DeadPlayerMultiplier);
+
+        var diceBuffer = (int)((Geometry.GetLargestContinuousFieldBlock(ActivePlayerId) * multiplier) + ActivePlayer.DiceBuffer);
+
+        diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
+
+        ActivePlayer.DiceBuffer = diceBuffer;
+
+        var gameEnded = false;
+
+        if (!Fields.All(x => x.OwnerId == ActivePlayerId))
+        {
+            SelectNextActivePlayer(ActivePlayerId);
+        }
+        else
+        {
+            gameEnded = true;
+        }
+
+        PreviousAttack = null;
+
+        GameRound++;
+
+        await _gameHistoryService.AddGameStateAsync(_gameId, this);
+        await DistributeStateAsync();
+
+        return !gameEnded;
+    }
+
+    private async Task HandleBotsAsync()
+    {
+        while (ActivePlayer.BotType.HasValue)
+        {
+            await HandleBotMovesAsync();
+            if (!await HandleEndOfRoundAsync())
+            {
+                return;
+            }
+        }
+    }
+
+    private async Task HandleBotMovesAsync()
+    {
+        do
+        {
+            var allBots = Players.Where(x => x.ContinuousFieldCount > 0).All(x => x.BotType.HasValue);
+
+            await Task.Delay(allBots ? 5 : 500);
+
+            var bot = BotHelper.BuidBot(this, ActivePlayer);
+
+            if (bot.MakeMove() is not AttackMoveCommand command)
+            {
+                return;
+            }
+
+            await AttackFieldAsync(command);
+        }
+        while (true);
     }
 
     private async Task DistributeStateAsync()

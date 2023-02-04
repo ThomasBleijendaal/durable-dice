@@ -64,6 +64,15 @@ public class GameHub : ServerlessHub
         }
     }
 
+    [FunctionName(nameof(AddBot))]
+    public async Task AddBot(
+        [SignalRTrigger] InvocationContext invocationContext,
+        AddBotCommand command,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(invocationContext.GetGameId()),
+            x => x.AddBotAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
+
     [FunctionName(nameof(AddPlayer))]
     public async Task AddPlayer(
         [SignalRTrigger] InvocationContext invocationContext,
