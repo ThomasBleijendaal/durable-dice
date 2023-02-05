@@ -7,6 +7,9 @@ namespace DurableDice.Common.Models.State;
 public class Player
 {
     [JsonProperty]
+    public int Index { get; set; }
+
+    [JsonProperty]
     public string Id { get; set; } = "";
 
     [JsonProperty]

@@ -22,10 +22,10 @@ else if (_gameState == null)
 else if (_gameState != null)
 {
     <div class="players">
-        @foreach (var (player, index) in _players)
+        @foreach (var player in _gameState.Players)
         {
             var fields = _gameState.PlayerFieldCount(player);
-            var className = $"player player-{index}";
+            var className = $"player player-{player.Index}";
             if (player.Id == _gameState.ActivePlayerId)
             {
                 className += " player-active";
@@ -43,7 +43,7 @@ else if (_gameState != null)
                 className += " player-not-ready";
             }
 
-            <div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@index'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
+            <div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@(player.Index)'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
                 @player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
             </div>
         }
@@ -162,16 +162,16 @@ else if (_gameState != null)
             </div>
         }
 
-        var ownedFields = string.Join(" ", _fields.Where(x => x.field.OwnerId == _playerId).Select(x => $"is-owned-{x.index}"));
+        var ownedFields = string.Join(" ", _gameState.Fields.Where(x => x.OwnerId == _playerId).Select(x => $"is-owned-{x.Index}"));
 
         <div class="fields @(ownedFields) @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
-            @foreach (var (field, index) in _fields)
+            @foreach (var field in _gameState.Fields)
             {
                 var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
                 var fieldModifier = field.Id[^1];
-                var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
+                var className = $"hexagon field-{field.Index} player-{ownerIndex}  mod-{fieldModifier}";
                 var modifierClassName = "modifier";
-                var labelClassName = $"label label-{index} {((field.OwnerId == _playerId) ? "allied" : "enemy")}";
+                var labelClassName = $"label label-{field.Index} {((field.OwnerId == _playerId) ? "allied" : "enemy")}";
 
                 labelClassName += string.Join(" ", field.Neighbors.Select(i => $" neighbor-of-{i}"));
 
@@ -235,7 +235,7 @@ else if (_gameState != null)
                 {
                     var (left, top) = Position(coordinate);
 
-                    <div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                    <div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@(field.Index)'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
                         <div class="left"></div>
                         <div class="middle"></div>
                         <div class="right"></div>
@@ -255,7 +255,7 @@ else if (_gameState != null)
                 {
                     var (left, top) = Position(field.Center);
 
-                    <div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                    <div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@(field.Index)'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
                         @field.DiceCount
                     </div>
                 }
@@ -303,10 +303,10 @@ else if (_gameState != null)
             <tbody>
                 @foreach (var player in _gameHistoryPlayers)
                 {
-                    var p = _players.First(x => x.player.Id == player.PlayerId);
+                    var p = _gameState.Players.First(x => x.Id == player.PlayerId);
 
                     <tr>
-                        <td>@p.player.Name</td>
+                        <td>@p.Name</td>
                         <td>@player.NumberOfFieldsCaptured</td>
                         <td>@player.NumberOfFieldsLost</td>
                     </tr>

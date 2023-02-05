@@ -47,6 +47,7 @@ public class GameEntity : GameState, IGameEntity
 
         Players.Add(new Player
         {
+            Index = Players.Count,
             Id = Guid.NewGuid().ToString(),
             Name = BotHelper.BotName(command.BotType, Players.Count),
             BotType = command.BotType,
@@ -65,6 +66,7 @@ public class GameEntity : GameState, IGameEntity
 
         Players.Add(new Player
         {
+            Index = Players.Count,
             Id = command.PlayerId,
             Name = command.PlayerName?.Substring(0, Math.Min(command.PlayerName.Length, 16)) ?? "Dummy"
         });
