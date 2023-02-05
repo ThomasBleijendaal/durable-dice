@@ -7,11 +7,13 @@ public class FieldGeometry
 {
     private readonly IEnumerable<Field> _fields;
 
+    [Obsolete("Should become static")]
     public FieldGeometry(IEnumerable<Field> fields)
     {
         _fields = fields;
     }
 
+    [Obsolete("Replaced by static calculation")]
     public bool AreNeighboringFields(string fieldId1, string fieldId2)
     {
         var field1 = _fields.FirstOrDefault(x => x.Id == fieldId1);

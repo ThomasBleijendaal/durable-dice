@@ -69,14 +69,17 @@ else if (_gameState != null)
         <div class="init">
             <p><strong>Game rules</strong></p>
 
-            <p>Durable Dice is a turn-based strategy game in which you must capture all fields.</p>
-
-            // TODO: add about moving
+            <p>Durable Dice is a turn-based strategy game. To win, you must capture all fields.</p>
 
             <p>
                 When attacking a field, your dice must win from the defending dice. If you win a battle,
                 all but one dice are moved to the captured field. You can attack any number of fields in
                 your turn, as long as the attacking field has 2 or more dice.
+            </p>
+
+            <p>
+                During your turn, you can move a fixed amount of dice around. When moving, all but one
+                dice are moved into the target field. 
             </p>
 
             <p>
@@ -87,7 +90,7 @@ else if (_gameState != null)
 
             <hr>
 
-            <p>Share url to invite your friends:<br /><code>@(NavManager.Uri)</code></p>
+            <p>Share url to invite your friends:<br /><br /><code>@(NavManager.Uri)</code></p>
 
             @if (_gameState.PlayerIsOwner(_playerId))
             {
@@ -148,7 +151,9 @@ else if (_gameState != null)
                 }
                 else if (_gameState.ActivePlayerId == _playerId)
                 {
-                    <p>It's your turn! Click on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
+                    var moveText = _gameState.Rules.MaxDiceMovedPerTurn == 0 ? "" : $", move ({_gameState.ActivePlayer.DiceMovesThisTurn} / {_gameState.Rules.MaxDiceMovedPerTurn})";
+
+                    <p>It's your turn! Attack@(moveText) or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
                 }
                 else
                 {
@@ -157,14 +162,18 @@ else if (_gameState != null)
             </div>
         }
 
-        <div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
+        var ownedFields = string.Join(" ", _fields.Where(x => x.field.OwnerId == _playerId).Select(x => $"is-owned-{x.index}"));
+
+        <div class="fields @(ownedFields) @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
             @foreach (var (field, index) in _fields)
             {
                 var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
                 var fieldModifier = field.Id[^1];
                 var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
                 var modifierClassName = "modifier";
-                var labelClassName = "label";
+                var labelClassName = $"label label-{index} {((field.OwnerId == _playerId) ? "allied" : "enemy")}";
+
+                labelClassName += string.Join(" ", field.Neighbors.Select(i => $" neighbor-of-{i}"));
 
                 if (_gameState.ActivePlayerId == _playerId)
                 {

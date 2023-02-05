@@ -6,6 +6,9 @@ namespace DurableDice.Common.Models.State;
 public class Field
 {
     [JsonProperty]
+    public int Index { get; set; }
+
+    [JsonProperty]
     public string Id { get; set; } = "";
 
     [JsonProperty]
@@ -22,6 +25,9 @@ public class Field
 
     [JsonProperty]
     public Coordinate Center { get; set; }
+
+    [JsonProperty]
+    public List<int> Neighbors { get; set; } = new List<int>();
 
     public int MaxDiceAllowedToAdd => 8 - DiceCount;
 

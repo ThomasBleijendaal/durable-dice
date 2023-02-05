@@ -138,7 +138,8 @@ public class GameEntity : GameState, IGameEntity
         if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
             Rules.EnsureValidRules();
-
+            
+            // TODO: make bots start too
             ActivePlayerId = Players.Where(x => !x.BotType.HasValue).RandomItem().Id;
 
             var fieldCountPerPlayer = (32 / Players.Count) * (Rules.StartDiceCountPerField - 1);

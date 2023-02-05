@@ -64,9 +64,11 @@ public partial class Index
     private bool _sending = false;
     private string _buttonClassName => _sending ? "sending" : "";
 
+    [Obsolete("Use Player.Index")]
     private IEnumerable<(Player player, int index)> _players
         => _gameState?.Players.Select((player, index) => (player, index)) ?? throw new Exception();
 
+    [Obsolete("Use Field.Index")]
     private IEnumerable<(Field field, int index)> _fields
         => _gameState?.Fields.Select((field, index) => (field, index)) ?? throw new Exception();
 

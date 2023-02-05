@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using DurableDice.Common.Models.State;
+using System.Linq;
 
 namespace DurableDice.Common.Geometry;
 
@@ -16,7 +17,6 @@ public static class FieldGenerator
         }
 
         var fieldsPerPlayer = 32 / players.Count;
-        var totalFields = fieldsPerPlayer * players.Count;
 
         var coordinates = Enumerable.Range(0, VerticalCoordinates)
             .SelectMany(y => Enumerable.Range(0, HorizontalCoordinates).Select(x => new Coordinate(x, y)))
@@ -71,6 +71,18 @@ public static class FieldGenerator
                 => distance == 0
                     ? coordinates
                     : Neighbors(coordinates.SelectMany(FieldGeometry.GetNeighboringCoordinates), distance - 1);
+        }
+
+        var geometry = new FieldGeometry(playerFields);
+
+        foreach (var (field, index) in playerFields.Select((field, index) => (field, index)))
+        {
+            field.Index = index;
+
+            field.Neighbors.AddRange(playerFields
+                .Select((field, index) => (field, index))
+                .Where(neightborField => geometry.AreNeighboringFields(field.Id, neightborField.field.Id))
+                .Select(neightborField => neightborField.index));
         }
 
         return playerFields;
