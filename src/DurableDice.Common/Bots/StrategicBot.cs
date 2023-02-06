@@ -17,12 +17,15 @@ internal class StrategicBot : IBot
     public MoveCommand? MakeMove()
     {
         // TODO: target the biggest enemy first
-        var mostEffectiveAttack = _botInsight.MostAdvantagousAttackableNeighboringEnemyFields
-            .FirstOrDefault(x => _botInsight.StrongestFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
-
-        if (mostEffectiveAttack != null && _botInsight.StrongestFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
+        if (_botInsight.GameState.ActivePlayer.DiceMovesThisTurn == 0)
         {
-            return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, mostEffectiveAttack.Id);
+            var mostEffectiveAttack = _botInsight.MostAdvantagousAttackableNeighboringEnemyFields
+                .FirstOrDefault(x => _botInsight.StrongestFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
+
+            if (mostEffectiveAttack != null && _botInsight.StrongestFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
+            {
+                return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, mostEffectiveAttack.Id);
+            }
         }
 
         // TODO: prevent hopping between the same fields

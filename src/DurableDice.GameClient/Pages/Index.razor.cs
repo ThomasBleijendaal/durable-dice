@@ -163,7 +163,7 @@ public partial class Index
     {
         _sending = true;
 
-        if (_gameState?.PlayerIsOwner(_playerId) ?? false && _gameRules != null)
+        if (_gameRules != null && (_gameState?.PlayerIsOwner(_playerId) ?? false))
         {
             await _gameEntity.ReadyWithRulesAsync(new ReadyPlayerCommand(_playerId, _gameRules));
         }

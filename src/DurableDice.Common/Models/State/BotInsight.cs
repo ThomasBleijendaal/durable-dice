@@ -22,8 +22,12 @@ internal class BotInsight
         .Except(OwnFields)
         .Where(x => AttackingOwnFields.Any(o => FieldGeometry.AreNeighboringFields(o, x)));
 
+    public IEnumerable<Field> NeighboringEnemyFields => Fields
+        .Except(OwnFields)
+        .Where(x => OwnFields.Any(o => FieldGeometry.AreNeighboringFields(o, x)));
+
     public IEnumerable<Field> SafeFields => OwnFields
-        .Where(field => AttackableNeighboringEnemyFields.All(n => !FieldGeometry.AreNeighboringFields(n, field)));
+        .Where(field => NeighboringEnemyFields.All(n => !FieldGeometry.AreNeighboringFields(n, field) || n.DiceCount == 1));
 
     public IEnumerable<Field> StrongestFieldNear(Field field) => OwnFields
         .Where(x => FieldGeometry.AreNeighboringFields(x, field))
@@ -35,10 +39,13 @@ internal class BotInsight
         {
             var currentFieldSize = FieldGeometry.GetLargestContinuousFieldBlock(Fields, ActivePlayerId);
 
-            return OwnFields
+            var order = OwnFields
                 .Except(SafeFields)
-                .OrderByDescending(field =>
-                    FieldGeometry.GetLargestContinuousFieldBlock(OwnFields.Except(new[] { field })) / currentFieldSize);
+                .OrderBy(field =>
+                    FieldGeometry.GetLargestContinuousFieldBlock(OwnFields.Except(new[] { field })) / currentFieldSize)
+                .ToList();
+
+            return order;
         }
     }
 
@@ -49,7 +56,7 @@ internal class BotInsight
             var currentFieldSize = FieldGeometry.GetLargestContinuousFieldBlock(Fields, ActivePlayerId);
 
             return AttackableNeighboringEnemyFields
-                .OrderByDescending(field =>
+                .OrderBy(field =>
                     FieldGeometry.GetLargestContinuousFieldBlock(OwnFields.Append(field.Copy(ActivePlayerId))) / currentFieldSize);
         }
     }
