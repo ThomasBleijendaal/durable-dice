@@ -45,9 +45,9 @@ public static class FieldGenerator
             Coordinate center;
             if (first)
             {
-                center = coordinates.Where(x => 
+                center = coordinates.First(x => 
                     x.X > (HorizontalCoordinates / 3) && x.X < (2 * HorizontalCoordinates / 3) &&
-                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3)).First();
+                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3));
                 first = false;
             }
             else
@@ -73,15 +73,13 @@ public static class FieldGenerator
                     : Neighbors(coordinates.SelectMany(FieldGeometry.GetNeighboringCoordinates), distance - 1);
         }
 
-        var geometry = new FieldGeometry(playerFields);
-
         foreach (var (field, index) in playerFields.Select((field, index) => (field, index)))
         {
             field.Index = index;
 
             field.Neighbors.AddRange(playerFields
                 .Select((field, index) => (field, index))
-                .Where(neightborField => geometry.AreNeighboringFields(field.Id, neightborField.field.Id))
+                .Where(neightborField => FieldGeometry.AreNeighboringFields(field, neightborField.field))
                 .Select(neightborField => neightborField.index));
         }
 

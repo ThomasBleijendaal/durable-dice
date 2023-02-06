@@ -21,9 +21,8 @@ public class FieldGeometryTests
         field1.Id = "1";
         field2.Id = "2";
 
-        var subject = new FieldGeometry(new[] { field1, field2 });
-
-        Assert.AreEqual(areNeighbors, subject.AreNeighboringFields("1", "2"));
+        Assert.AreEqual(areNeighbors, FieldGeometry.AreNeighboringFields(new[] { field1, field2 }, "1", "2"));
+        Assert.AreEqual(areNeighbors, FieldGeometry.AreNeighboringFields(field1, field2));
     }
 
     [TestCaseSource(typeof(FieldBlockSizeTestCaseSource))]
@@ -39,9 +38,8 @@ public class FieldGeometryTests
             x.OwnerId = "A";
         });
 
-        var subject = new FieldGeometry(ownedFields);
-
-        Assert.AreEqual(blocksize, subject.GetLargestContinuousFieldBlock("A"));
+        Assert.AreEqual(blocksize, FieldGeometry.GetLargestContinuousFieldBlock(ownedFields, "A"));
+        Assert.AreEqual(blocksize, FieldGeometry.GetLargestContinuousFieldBlock(ownedFields));
     }
 
     [TestCaseSource(typeof(FieldCircleTestCaseSource))]
@@ -58,9 +56,7 @@ public class FieldGeometryTests
     {
         var state = new GameState();
 
-        var subject = new FieldGeometry(state.Fields);
-
-        Assert.AreEqual(0, subject.GetLargestContinuousFieldBlock("X"));
+        Assert.AreEqual(0, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "X"));
     }
 
     [Test]
@@ -70,15 +66,13 @@ public class FieldGeometryTests
 
         var state = JsonConvert.DeserializeObject<GameState>(json);
 
-        var subject = new FieldGeometry(state.Fields);
-
-        Assert.AreEqual(1, subject.GetLargestContinuousFieldBlock("01f8c6ed-baf1-449a-ba7e-6a0f1f7d28d5"));
-        Assert.AreEqual(2, subject.GetLargestContinuousFieldBlock("dd8200b5-2699-42d7-a9a2-de38f1c706a6"));
-        Assert.AreEqual(5, subject.GetLargestContinuousFieldBlock("905fea84-e074-4f37-aeea-3861d9248fb3"));
-        Assert.AreEqual(3, subject.GetLargestContinuousFieldBlock("8904c1ab-8f27-4dc6-baa2-291b8a6eb32e"));
-        Assert.AreEqual(2, subject.GetLargestContinuousFieldBlock("96fd4c7d-d029-48d0-beec-b098e8615c43"));
-        Assert.AreEqual(4, subject.GetLargestContinuousFieldBlock("4d601f6c-4a20-4d12-a603-cea8ae42f74f"));
-        Assert.AreEqual(1, subject.GetLargestContinuousFieldBlock("7d424ecb-f1a0-4371-a80c-93741b88f07a"));
+        Assert.AreEqual(1, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "01f8c6ed-baf1-449a-ba7e-6a0f1f7d28d5"));
+        Assert.AreEqual(2, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "dd8200b5-2699-42d7-a9a2-de38f1c706a6"));
+        Assert.AreEqual(5, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "905fea84-e074-4f37-aeea-3861d9248fb3"));
+        Assert.AreEqual(3, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "8904c1ab-8f27-4dc6-baa2-291b8a6eb32e"));
+        Assert.AreEqual(2, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "96fd4c7d-d029-48d0-beec-b098e8615c43"));
+        Assert.AreEqual(4, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "4d601f6c-4a20-4d12-a603-cea8ae42f74f"));
+        Assert.AreEqual(1, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "7d424ecb-f1a0-4371-a80c-93741b88f07a"));
     }
 
     [Test]
@@ -90,9 +84,7 @@ public class FieldGeometryTests
 
         state.Fields.ForEach(field => field.Id = Guid.NewGuid().ToString());
 
-        var subject = new FieldGeometry(state.Fields);
-
-        Assert.AreEqual(28, subject.GetLargestContinuousFieldBlock("01f8c6ed-baf1-449a-ba7e-6a0f1f7d28d5"));
+        Assert.AreEqual(28, FieldGeometry.GetLargestContinuousFieldBlock(state.Fields, "01f8c6ed-baf1-449a-ba7e-6a0f1f7d28d5"));
     }
 }
 

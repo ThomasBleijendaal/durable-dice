@@ -3,22 +3,13 @@ using DurableDice.Common.Models.State;
 
 namespace DurableDice.Common.Geometry;
 
-public class FieldGeometry
+public static class FieldGeometry
 {
-    private readonly IEnumerable<Field> _fields;
+    public static bool AreNeighboringFields(IEnumerable<Field> fields, string fieldId1, string fieldId2)
+        => AreNeighboringFields(fields.FirstOrDefault(x => x.Id == fieldId1), fields.FirstOrDefault(x => x.Id == fieldId2));
 
-    [Obsolete("Should become static")]
-    public FieldGeometry(IEnumerable<Field> fields)
+    public static bool AreNeighboringFields(Field? field1, Field? field2)
     {
-        _fields = fields;
-    }
-
-    [Obsolete("Replaced by static calculation")]
-    public bool AreNeighboringFields(string fieldId1, string fieldId2)
-    {
-        var field1 = _fields.FirstOrDefault(x => x.Id == fieldId1);
-        var field2 = _fields.FirstOrDefault(x => x.Id == fieldId2);
-
         if (field1 == null ||
             field2 == null ||
             field1.Coordinates.Any(c1 => field2.Coordinates.Any(c2 => c1 == c2)))
@@ -26,27 +17,22 @@ public class FieldGeometry
             return false;
         }
 
-        foreach (var field1NeighboringCoordinate in field1.Coordinates.SelectMany(GetNeighboringCoordinates))
-        {
-            if (field2.Coordinates.Any(field2Coordinate => field1NeighboringCoordinate == field2Coordinate))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return field1.Coordinates
+            .SelectMany(GetNeighboringCoordinates)
+            .Any(field1NeighboringCoordinate => field2.Coordinates.Any(field2Coordinate => field1NeighboringCoordinate == field2Coordinate));
     }
 
-    public int GetLargestContinuousFieldBlock(string ownerId)
-    {
-        var ownedFields = _fields.Where(x => x.OwnerId == ownerId);
+    public static int GetLargestContinuousFieldBlock(IEnumerable<Field> fields, string ownerId)
+        => GetLargestContinuousFieldBlock(fields.Where(x => x.OwnerId == ownerId));
 
-        var neighborMap = ownedFields.Aggregate(
+    public static int GetLargestContinuousFieldBlock(IEnumerable<Field> fields)
+    {
+        var neighborMap = fields.Aggregate(
             new Dictionary<string, IReadOnlyList<string>>(),
             (aggregate, field) =>
             {
-                aggregate[field.Id] = ownedFields
-                    .Where(otherField => AreNeighboringFields(field.Id, otherField.Id))
+                aggregate[field.Id] = fields
+                    .Where(otherField => AreNeighboringFields(field, otherField))
                     .Select(otherField => otherField.Id)
                     .Append(field.Id)
                     .ToList();

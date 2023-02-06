@@ -50,6 +50,12 @@ button {
     text-align: center;
 }
 
+.winner a {
+    color: white;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .players {
     margin: 1rem;
     width: 100%;

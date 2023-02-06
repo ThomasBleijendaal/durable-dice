@@ -31,6 +31,12 @@ public class GameEntityService : IGameEntity
     public event Action<GameState>? NewStateReceived;
     public event Action<bool>? ConnectionState;
 
+    public async Task InitAsync()
+    {
+        await _connection.StartAsync();
+        await _connection.SendAsync("JoinGame");
+    }
+
     public async Task AddBotAsync(AddBotCommand command)
     {
         await _init;
@@ -83,11 +89,5 @@ public class GameEntityService : IGameEntity
     {
         ConnectionState?.Invoke(true);
         return Task.CompletedTask;
-    }
-
-    private async Task InitAsync()
-    {
-        await _connection.StartAsync();
-        await _connection.SendAsync("JoinGame");
-    }
+    }   
 }

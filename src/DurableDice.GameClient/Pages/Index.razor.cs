@@ -1,6 +1,7 @@
 ﻿using Blazored.LocalStorage;
 using DurableDice.Common.Abstractions;
 using DurableDice.Common.Enums;
+using DurableDice.Common.Geometry;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
@@ -58,19 +59,22 @@ public partial class Index
 
     private GameState? _gameState;
 
+    private GameRules? _gameRules;
+
     private List<GamePlayer>? _gameHistoryPlayers;
     private List<GameField>? _gameHistoryFields;
 
     private bool _sending = false;
     private string _buttonClassName => _sending ? "sending" : "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         var localStoragePlayerId = "";
 
-        if (string.IsNullOrEmpty(GameId) || !Guid.TryParse(GameId, out _))
+        if (string.IsNullOrEmpty(GameId))
         {
-            GameId = Guid.NewGuid().ToString();
+            GameId = await HttpClient.GetStringAsync($"{ServerEndpoint}/game/new");
+
             NavManager.NavigateTo($"/{GameId}", false);
         }
         else
@@ -105,6 +109,7 @@ public partial class Index
     {
         _sending = false;
         _gameState = state;
+        _gameRules = (_gameRules == null || !_gameState.PlayerIsOwner(_playerId)) ? _gameState.Rules : _gameRules;
 
         if (_attacking)
         {
@@ -158,9 +163,9 @@ public partial class Index
     {
         _sending = true;
 
-        if (_gameState?.PlayerIsOwner(_playerId) ?? false)
+        if (_gameState?.PlayerIsOwner(_playerId) ?? false && _gameRules != null)
         {
-            await _gameEntity.ReadyWithRulesAsync(new ReadyPlayerCommand(_playerId, _gameState.Rules));
+            await _gameEntity.ReadyWithRulesAsync(new ReadyPlayerCommand(_playerId, _gameRules));
         }
         else
         {
@@ -192,7 +197,7 @@ public partial class Index
         {
             _fromFieldId = "";
         }
-        else if (_gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id))
+        else if (FieldGeometry.AreNeighboringFields(_gameState.Fields, _fromFieldId, field.Id))
         {
             _toFieldId = field.Id;
             await _gameEntity.MoveFieldAsync(new MoveCommand(_playerId, _fromFieldId, field.Id));
@@ -202,11 +207,9 @@ public partial class Index
         StateHasChanged();
     }
 
-    private (int left, int top) Position(Coordinate coordinate)
+    private static (int left, int top) Position(Coordinate coordinate)
     {
-        var left = coordinate.X % 2 == 1
-            ? coordinate.X * 21
-            : coordinate.X * 21;
+        var left = coordinate.X * 21;
         var top = coordinate.X % 2 == 1
             ? 12 + coordinate.Y * 24
             : coordinate.Y * 24;

@@ -4,14 +4,10 @@ namespace DurableDice.Common.Models.State;
 
 internal class BotInsight
 {
-    private readonly FieldGeometry _geometry;
-
     public BotInsight(GameState gameState, IReadOnlyList<Field> fields)
     {
         GameState = gameState;
         Fields = fields;
-
-        _geometry = new(fields);
     }
 
     public string ActivePlayerId => GameState.ActivePlayerId ?? throw new ArgumentException("Invalid game state");
@@ -24,25 +20,25 @@ internal class BotInsight
 
     public IEnumerable<Field> AttackableNeighboringEnemyFields => Fields
         .Except(OwnFields)
-        .Where(x => AttackingOwnFields.Any(o => _geometry.AreNeighboringFields(o.Id, x.Id)));
+        .Where(x => AttackingOwnFields.Any(o => FieldGeometry.AreNeighboringFields(o, x)));
 
     public IEnumerable<Field> SafeFields => OwnFields
-        .Where(field => AttackableNeighboringEnemyFields.All(n => !_geometry.AreNeighboringFields(n.Id, field.Id)));
+        .Where(field => AttackableNeighboringEnemyFields.All(n => !FieldGeometry.AreNeighboringFields(n, field)));
 
     public IEnumerable<Field> StrongestFieldNear(Field field) => OwnFields
-        .Where(x => _geometry.AreNeighboringFields(x.Id, field.Id))
+        .Where(x => FieldGeometry.AreNeighboringFields(x, field))
         .OrderByDescending(x => x.DiceCount);
 
     public IEnumerable<Field> VulnerableFields
     {
         get
         {
-            var currentFieldSize = _geometry.GetLargestContinuousFieldBlock(ActivePlayerId);
+            var currentFieldSize = FieldGeometry.GetLargestContinuousFieldBlock(Fields, ActivePlayerId);
 
             return OwnFields
                 .Except(SafeFields)
                 .OrderByDescending(field =>
-                    new FieldGeometry(OwnFields.Except(new[] { field })).GetLargestContinuousFieldBlock(ActivePlayerId) / currentFieldSize);
+                    FieldGeometry.GetLargestContinuousFieldBlock(OwnFields.Except(new[] { field })) / currentFieldSize);
         }
     }
 
@@ -50,12 +46,11 @@ internal class BotInsight
     {
         get
         {
-            var currentFieldSize = _geometry.GetLargestContinuousFieldBlock(ActivePlayerId);
+            var currentFieldSize = FieldGeometry.GetLargestContinuousFieldBlock(Fields, ActivePlayerId);
 
             return AttackableNeighboringEnemyFields
                 .OrderByDescending(field =>
-                    new FieldGeometry(OwnFields.Append(field.Copy(ActivePlayerId)))
-                        .GetLargestContinuousFieldBlock(ActivePlayerId) / currentFieldSize);
+                    FieldGeometry.GetLargestContinuousFieldBlock(OwnFields.Append(field.Copy(ActivePlayerId))) / currentFieldSize);
         }
     }
 }

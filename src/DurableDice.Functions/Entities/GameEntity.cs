@@ -6,6 +6,7 @@ using DurableDice.Common.Helpers;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
 using DurableDice.Common.Services;
+using DurableDice.Functions.Extensions;
 using DurableDice.Functions.SignalRFunctions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
@@ -17,26 +18,33 @@ public class GameEntity : GameState, IGameEntity
 {
     private readonly IAsyncCollector<SignalRMessage> _signalr;
     private readonly string _gameId;
+    private readonly IDurableEntityClient _client;
     private readonly GameHistoryService _gameHistoryService;
 
     public GameEntity(
         IAsyncCollector<SignalRMessage> signalr,
         string gameId,
+        IDurableEntityClient client,
         GameHistoryService gameHistoryService)
     {
         _signalr = signalr;
         _gameId = gameId;
+        _client = client;
         _gameHistoryService = gameHistoryService;
     }
 
     [FunctionName(nameof(GameEntity))]
     public static Task ProxyGameEntityFunction(
         [EntityTrigger] IDurableEntityContext context,
+        [DurableClient] IDurableEntityClient client,
         [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr)
             => context.DispatchAsync<GameEntity>(
                 signalr,
                 context.EntityKey,
+                client,
                 context.FunctionBindingContext.CreateObjectInstance<GameHistoryService>());
+
+    public Task InitAsync() => Task.CompletedTask;
 
     public async Task AddBotAsync(AddBotCommand command)
     {
@@ -83,7 +91,7 @@ public class GameEntity : GameState, IGameEntity
             toField == null ||
             fromField.OwnerId != command.PlayerId ||
             fromField.DiceCount <= 1 ||
-            !Geometry.AreNeighboringFields(fromField.Id, toField.Id))
+            !FieldGeometry.AreNeighboringFields(fromField, toField))
         {
             return;
         }
@@ -140,9 +148,8 @@ public class GameEntity : GameState, IGameEntity
         if (Players.Count > 1 && Players.All(x => x.IsReady))
         {
             Rules.EnsureValidRules();
-            
-            // TODO: make bots start too
-            ActivePlayerId = Players.Where(x => !x.BotType.HasValue).RandomItem().Id;
+
+            ActivePlayerId = Players.RandomItem().Id;
 
             var fieldCountPerPlayer = (32 / Players.Count) * (Rules.StartDiceCountPerField - 1);
 
@@ -158,9 +165,17 @@ public class GameEntity : GameState, IGameEntity
             Fields.ForEach(x => x.DiceAdded = 0);
 
             Players.ForEach(x => x.DiceBuffer = Rules.InitialDiceBuffer);
-        }
 
-        await DistributeStateAsync();
+            NextGameId = await _client.GetNewGameIdAsync();
+
+            await DistributeStateAsync();
+
+            await HandleBotsAsync();
+        }
+        else
+        {
+            await DistributeStateAsync();
+        }
     }
 
     private async Task AttackAsync(Field fromField, Field toField)
@@ -214,8 +229,6 @@ public class GameEntity : GameState, IGameEntity
         };
 
         ActivePlayer.DiceMovesThisTurn += diceToMove;
-
-        return;
     }
 
     private async Task<bool> HandleEndOfRoundAsync()
@@ -229,7 +242,7 @@ public class GameEntity : GameState, IGameEntity
 
         var multiplier = Rules.DiceGenerationMultiplier + (Players.Count(x => x.ContinuousFieldCount == 0) * Rules.DeadPlayerMultiplier);
 
-        var diceBuffer = (int)((Geometry.GetLargestContinuousFieldBlock(ActivePlayerId) * multiplier) + ActivePlayer.DiceBuffer);
+        var diceBuffer = (int)((FieldGeometry.GetLargestContinuousFieldBlock(Fields, ActivePlayerId) * multiplier) + ActivePlayer.DiceBuffer);
 
         diceBuffer = AddNewDiceToPlayer(ActivePlayerId, diceBuffer);
 
@@ -359,7 +372,7 @@ public class GameEntity : GameState, IGameEntity
     {
         foreach (var player in Players)
         {
-            player.ContinuousFieldCount = Geometry.GetLargestContinuousFieldBlock(player.Id);
+            player.ContinuousFieldCount = FieldGeometry.GetLargestContinuousFieldBlock(Fields, player.Id);
         }
     }
 }

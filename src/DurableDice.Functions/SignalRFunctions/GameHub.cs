@@ -52,7 +52,7 @@ public class GameHub : ServerlessHub
 
         await Groups.AddToGroupAsync(invocationContext.ConnectionId, gameId);
 
-        var entity = await entityClient.ReadEntityStateAsync<GameState>(new EntityId(nameof(GameEntity), gameId));
+        var entity = await entityClient.ReadEntityStateAsync<GameState>(EntityId(gameId));
         if (entity.EntityExists)
         {
             await signalr.AddAsync(new SignalRMessage

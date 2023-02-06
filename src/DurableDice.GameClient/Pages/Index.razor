@@ -10,7 +10,7 @@
     <p class="connection-state">Connecting..</p>
 }
 
-@if (string.IsNullOrEmpty(_playerName))
+@if (string.IsNullOrEmpty(_playerName) && _gameEntity != null)
 {
     <input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
     <button @onclick="JoinAsync" class=@_buttonClassName>Join</button>
@@ -52,7 +52,7 @@ else if (_gameState != null)
     if (!_gameState.Fields.Any())
     {
         <div class="buttons">
-            @if (!_gameState.Player(_playerId).IsReady)
+            @if (_gameState.Player(_playerId)?.IsReady != true)
             {
                 <button @onclick="ReadyAsync" class=@_buttonClassName>Ready</button>
             }
@@ -61,7 +61,7 @@ else if (_gameState != null)
 
     if (_gameState.Winner is Player winner)
     {
-        <p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
+        <p class="winner player-@_gameState.WinnerIndex">@winner.Name won!<br /> <a href="#" onclick="location.href = '/@(_gameState.NextGameId)'">Go to new game</a></p>
     }
 
     if (!_gameState.Fields.Any())
@@ -79,7 +79,7 @@ else if (_gameState != null)
 
             <p>
                 During your turn, you can move a fixed amount of dice around. When moving, all but one
-                dice are moved into the target field. 
+                dice are moved into the target field.
             </p>
 
             <p>
@@ -101,42 +101,46 @@ else if (_gameState != null)
 
                 <hr>
 
-                <p>These settings allow you to tweak the rules. Make only minor adjustments as these quickly
+                <p>
+                    These settings allow you to tweak the rules. Make only minor adjustments as these quickly
                     ramp up the insanity of this game.
                 </p>
 
-                <EditForm Model="@(_gameState.Rules)">
-                    <p>
-                        <label>
-                            Start dice per field (1-8)
-                            <InputNumber @bind-Value="@(_gameState.Rules.StartDiceCountPerField)" min="1" max="8" step="1" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Initial dice buffer (0-16)
-                            <InputNumber @bind-Value="@(_gameState.Rules.InitialDiceBuffer)" min="0" max="50" step="1" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Max dice moves per turn (0-16)
-                            <InputNumber @bind-Value="@(_gameState.Rules.MaxDiceMovedPerTurn)" min="0" max="50" step="1" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Dice generation multiplier (1.0 - 10.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DiceGenerationMultiplier)" min="1" max="10" step="0.01" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Dead player count dice generation multiplier (0.0 - 2.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DeadPlayerMultiplier)" min="0" max="2" step="0.01" />
-                        </label>
-                    </p>
-                </EditForm>
+                @if (_gameRules != null)
+                {
+                    <EditForm Model="@(_gameRules)">
+                        <p>
+                            <label>
+                                Start dice per field (1-8)
+                                <InputNumber @bind-Value="@(_gameRules.StartDiceCountPerField)" min="1" max="8" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Initial dice buffer (0-16)
+                                <InputNumber @bind-Value="@(_gameRules.InitialDiceBuffer)" min="0" max="16" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Max dice moves per turn (0-16)
+                                <InputNumber @bind-Value="@(_gameRules.MaxDiceMovedPerTurn)" min="0" max="16" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Dice generation multiplier (1.0 - 10.0)
+                                <InputNumber @bind-Value="@(_gameRules.DiceGenerationMultiplier)" min="1" max="10" step="0.01" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Dead player count dice generation multiplier (0.0 - 2.0)
+                                <InputNumber @bind-Value="@(_gameRules.DeadPlayerMultiplier)" min="0" max="2" step="0.01" />
+                            </label>
+                        </p>
+                    </EditForm>
+                }
             }
         </div>
     }
@@ -178,7 +182,7 @@ else if (_gameState != null)
                 if (_gameState.ActivePlayerId == _playerId)
                 {
                     if (_playerId == field.OwnerId && field.DiceCount > 1 ||
-                    (field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+                    (field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && FieldGeometry.AreNeighboringFields(_gameState.Fields, _fromFieldId, field.Id)))
                     {
                         className += " field-attackable";
                         labelClassName += " field-attackable";
@@ -210,7 +214,7 @@ else if (_gameState != null)
                         modifierClassName += $" mod-{field.DiceAdded}-dice-added";
                     }
 
-                    if (field.Id == _gameState.PreviousMove?.AddedFieldId) 
+                    if (field.Id == _gameState.PreviousMove?.AddedFieldId)
                     {
                         modifierClassName += $" mod-{_gameState.PreviousMove.Count}-dice-added";
                     }

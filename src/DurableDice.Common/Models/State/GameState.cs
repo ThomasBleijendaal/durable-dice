@@ -1,12 +1,13 @@
-﻿using DurableDice.Common.Enums;
-using DurableDice.Common.Geometry;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace DurableDice.Common.Models.State;
 
 [JsonObject(MemberSerialization.OptIn)]
 public class GameState
 {
+    [JsonProperty]
+    public string? NextGameId { get; set; }
+
     [JsonProperty]
     public List<Player> Players { get; set; } = new List<Player>();
 
@@ -20,9 +21,6 @@ public class GameState
     public int GameRound { get; set; }
 
     [JsonProperty]
-    public MatchState State { get; set; }
-
-    [JsonProperty]
     public Attack? PreviousAttack { get; set; }
 
     [JsonProperty]
@@ -30,13 +28,6 @@ public class GameState
 
     [JsonProperty]
     public GameRules Rules { get; set; } = new GameRules();
-
-    private FieldGeometry? _geomertry;
-
-    public FieldGeometry Geometry
-    {
-        get => _geomertry ??= new FieldGeometry(Fields);
-    }
 
     public Player ActivePlayer
         => Players.First(x => x.Id == ActivePlayerId);
@@ -61,8 +52,8 @@ public class GameState
     public bool PlayerIsOwner(string playerId)
         => Players.ElementAtOrDefault(0)?.Id == playerId;
 
-    public Player Player(string playerId)
-        => Players.First(x => x.Id == playerId);
+    public Player? Player(string playerId)
+        => Players.FirstOrDefault(x => x.Id == playerId);
 
     public int PlayerIndex(string playerId)
         => Players.FindIndex(x => x.Id == playerId);

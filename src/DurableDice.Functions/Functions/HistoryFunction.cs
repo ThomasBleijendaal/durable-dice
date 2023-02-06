@@ -18,7 +18,7 @@ public class HistoryFunction
 
     [FunctionName(nameof(GetHistoryAsync))]
     public async Task<GameHistory?> GetHistoryAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, Route = "history/{gameId}")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "history/{gameId}")] HttpRequest req,
         string gameId)
             => await _gameHistoryService.GetGameHistoryAsync(gameId);
 }
