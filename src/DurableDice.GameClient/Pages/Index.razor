@@ -72,25 +72,25 @@ else if (_gameState != null)
             <p>Durable Dice is a turn-based strategy game. To win, you must capture all fields.</p>
 
             <p>
-                When attacking a field, your dice must win from the defending dice. If you win a battle,
+                When attacking a field, your dice must role more than the defending dice. If you win a battle,
                 all but one dice are moved to the captured field. You can attack any number of fields in
                 your turn, as long as the attacking field has 2 or more dice.
             </p>
 
             <p>
-                During your turn, you can move a fixed amount of dice around. When moving, all but one
-                dice are moved into the target field.
+                During any point in your turn, you can move a fixed amount of dice around. When moving, all dice
+                that are allowed to be moved are moved into the target field.
             </p>
 
             <p>
                 At the end of your turn, new dice are added randomly to your fields. The number of
                 new dice is equal to the biggest number of contiguous fields, so make sure you keep
-                your fields together.
+                your fields together and divide other players into smaller chunks.
             </p>
 
             <hr>
 
-            <p>Share url to invite your friends:<br /><br /><code>@(NavManager.Uri)</code></p>
+            <p>Share url:<br /><br /><code>@(NavManager.Uri)</code></p>
 
             @if (_gameState.PlayerIsOwner(_playerId))
             {

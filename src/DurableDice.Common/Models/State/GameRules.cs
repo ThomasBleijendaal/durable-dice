@@ -16,7 +16,7 @@ public class GameRules
 
     [JsonProperty]
     [Required]
-    public int MaxDiceMovedPerTurn { get; set; } = 0;
+    public int MaxDiceMovedPerTurn { get; set; } = 4;
 
     [JsonProperty]
     [Required]
