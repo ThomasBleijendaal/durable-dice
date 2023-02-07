@@ -29,6 +29,8 @@ public class Field
     [JsonProperty]
     public List<int> Neighbors { get; set; } = new List<int>();
 
+    public bool IsNeighbor(Field otherField) => Neighbors.Contains(otherField.Index);
+
     public int MaxDiceAllowedToAdd => 8 - DiceCount;
 
     public Field Copy(string ownerId) => new Field

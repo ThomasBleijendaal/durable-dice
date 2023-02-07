@@ -6,5 +6,8 @@ public static class EnumerableExtensions
         => source.Any() ? source.Max() : default;
 
     public static T RandomItem<T>(this IEnumerable<T> source)
-        => source.OrderBy(x => Guid.NewGuid()).First();
+        => source.Shuffle().First();
+
+    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source, Random? random = null)
+        => source.OrderBy(x => (random ?? Random.Shared).Next());
 }

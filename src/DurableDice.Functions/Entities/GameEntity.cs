@@ -91,7 +91,7 @@ public class GameEntity : GameState, IGameEntity
             toField == null ||
             fromField.OwnerId != command.PlayerId ||
             fromField.DiceCount <= 1 ||
-            !FieldGeometry.AreNeighboringFields(fromField, toField))
+            !fromField.IsNeighbor(toField))
         {
             return;
         }
@@ -291,7 +291,7 @@ public class GameEntity : GameState, IGameEntity
 
             if (!allBots)
             {
-                await Task.Delay(500);
+                await Task.Delay(200);
             }
 
             var bot = BotHelper.BuildBot(this);

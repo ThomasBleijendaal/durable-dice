@@ -3,5 +3,6 @@
 public enum BotType
 {
     CheezyBot,
-    StrategicBot
+    StrategicBot,
+    NerdBot
 }

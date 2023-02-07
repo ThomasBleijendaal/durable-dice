@@ -22,7 +22,7 @@ internal class CheezyBot : IBot
             return null;
         }
 
-        var strongestField = _botInsight.StrongestFieldNear(randomEnemyField).FirstOrDefault();
+        var strongestField = _botInsight.StrongestAlliedFieldNear(randomEnemyField).FirstOrDefault();
         if (strongestField == null)
         {
             return null;

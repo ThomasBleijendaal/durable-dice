@@ -19,6 +19,10 @@ public class FieldGeneratorTests
         Assert.AreEqual(0, fields.Count(x => x.OwnerId == null));
         Assert.AreEqual(16, fields.GroupBy(x => x.OwnerId).First().Count());
         Assert.AreEqual(16, fields.GroupBy(x => x.OwnerId).Last().Count());
+
+        Assert.AreEqual(32, fields.SelectMany(x => x.Neighbors).Distinct().Count());
+
+        Assert.IsTrue(fields.All(field => field.Neighbors.All(neighbor => fields.First(x => x.Index == neighbor).IsNeighbor(field))));
     }
 
     [Test]

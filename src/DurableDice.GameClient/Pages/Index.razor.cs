@@ -29,7 +29,7 @@ public partial class Index
     [Parameter]
     public string? GameId { get; set; }
 
-    private readonly string[] _colors = new []
+    private readonly string[] _colors = new[]
     {
         "#ffc83d",
         "#e3008c",
@@ -143,19 +143,15 @@ public partial class Index
         }
     }
 
-    private async Task AddCheezyBotAsync()
-    {
-        if (_gameState?.PlayerIsOwner(_playerId) ?? false)
-        {
-            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.CheezyBot));
-        }
-    }
+    private Task AddCheezyBotAsync() => AddBotAsync(BotType.CheezyBot);
+    private Task AddStrategicBotAsync() => AddBotAsync(BotType.StrategicBot);
+    private Task AddNerdBotAsync() => AddBotAsync(BotType.NerdBot);
 
-    private async Task AddStrategicBotAsync()
+    private async Task AddBotAsync(BotType type)
     {
         if (_gameState?.PlayerIsOwner(_playerId) ?? false)
         {
-            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, BotType.StrategicBot));
+            await _gameEntity.AddBotAsync(new AddBotCommand(_playerId, type));
         }
     }
 

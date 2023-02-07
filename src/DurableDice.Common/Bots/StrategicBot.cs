@@ -16,26 +16,24 @@ internal class StrategicBot : IBot
 
     public MoveCommand? MakeMove()
     {
-        // TODO: target the biggest enemy first
         if (_botInsight.GameState.ActivePlayer.DiceMovesThisTurn == 0)
         {
             var mostEffectiveAttack = _botInsight.MostAdvantagousAttackableNeighboringEnemyFields
-                .FirstOrDefault(x => _botInsight.StrongestFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
+                .FirstOrDefault(x => _botInsight.StrongestAlliedFieldNear(x).Any(y => x.DiceCount <= y.DiceCount));
 
-            if (mostEffectiveAttack != null && _botInsight.StrongestFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
+            if (mostEffectiveAttack != null && _botInsight.StrongestAlliedFieldNear(mostEffectiveAttack).FirstOrDefault() is Field strongestField)
             {
                 return new MoveCommand(_botInsight.ActivePlayerId, strongestField.Id, mostEffectiveAttack.Id);
             }
         }
 
-        // TODO: prevent hopping between the same fields
         if (_botInsight.GameState.ActivePlayer.DiceMovesThisTurn < _botInsight.GameState.Rules.MaxDiceMovedPerTurn)
         {
             var vulnerableFields = _botInsight.VulnerableFields.ToList();
 
             var mostImprovingMove = vulnerableFields
                 .Where(x => x.DiceCount < 4)
-                .SelectMany(protect => _botInsight.StrongestFieldNear(protect).Where(donor => donor.DiceCount > 1).Select(donor => (protect, donor)))
+                .SelectMany(protect => _botInsight.StrongestAlliedFieldNear(protect).Where(donor => donor.DiceCount > 1).Select(donor => (protect, donor)))
                 .OrderByDescending(combo => vulnerableFields.IndexOf(combo.protect) - vulnerableFields.IndexOf(combo.donor))
                 .FirstOrDefault();
 
