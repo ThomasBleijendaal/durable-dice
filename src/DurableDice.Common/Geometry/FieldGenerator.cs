@@ -16,7 +16,6 @@ public static class FieldGenerator
         }
 
         var fieldsPerPlayer = 32 / players.Count;
-        var totalFields = fieldsPerPlayer * players.Count;
 
         var coordinates = Enumerable.Range(0, VerticalCoordinates)
             .SelectMany(y => Enumerable.Range(0, HorizontalCoordinates).Select(x => new Coordinate(x, y)))
@@ -24,11 +23,14 @@ public static class FieldGenerator
             .Skip((VerticalCoordinates / 3) * (HorizontalCoordinates / 3))
             .ToList();
 
+        var index = 0;
+
         var playerFields = players
             .SelectMany(player =>
                 Enumerable.Range(0, fieldsPerPlayer)
                     .Select(field => new Field
                     {
+                        Index = index++,
                         DiceCount = 1,
                         Id = $"{player.Id}-{field}",
                         OwnerId = player.Id
@@ -45,9 +47,9 @@ public static class FieldGenerator
             Coordinate center;
             if (first)
             {
-                center = coordinates.Where(x => 
+                center = coordinates.First(x => 
                     x.X > (HorizontalCoordinates / 3) && x.X < (2 * HorizontalCoordinates / 3) &&
-                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3)).First();
+                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3));
                 first = false;
             }
             else
@@ -71,6 +73,13 @@ public static class FieldGenerator
                 => distance == 0
                     ? coordinates
                     : Neighbors(coordinates.SelectMany(FieldGeometry.GetNeighboringCoordinates), distance - 1);
+        }
+
+        foreach (var field in playerFields)
+        {
+            field.Neighbors.AddRange(playerFields
+                .Where(neightborField => FieldGeometry.AreNeighboringFields(field, neightborField))
+                .Select(neightborField => neightborField.Index));
         }
 
         return playerFields;

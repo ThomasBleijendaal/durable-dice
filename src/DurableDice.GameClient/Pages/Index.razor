@@ -10,7 +10,7 @@
     <p class="connection-state">Connecting..</p>
 }
 
-@if (string.IsNullOrEmpty(_playerName))
+@if (string.IsNullOrEmpty(_playerName) && _gameEntity != null)
 {
     <input placeholder="Enter your name" @bind="@_newPlayerName" maxlength="16" />
     <button @onclick="JoinAsync" class=@_buttonClassName>Join</button>
@@ -22,10 +22,10 @@ else if (_gameState == null)
 else if (_gameState != null)
 {
     <div class="players">
-        @foreach (var (player, index) in _players)
+        @foreach (var player in _gameState.Players)
         {
             var fields = _gameState.PlayerFieldCount(player);
-            var className = $"player player-{index}";
+            var className = $"player player-{player.Index}";
             if (player.Id == _gameState.ActivePlayerId)
             {
                 className += " player-active";
@@ -43,7 +43,7 @@ else if (_gameState != null)
                 className += " player-not-ready";
             }
 
-            <div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@index'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
+            <div class=@className onmouseenter="this.parentNode.parentNode.dataset.playerhover = '@(player.Index)'" onmouseleave="delete this.parentNode.parentNode.dataset.playerhover">
                 @player.Name (@player.ContinuousFieldCount | @player.DiceBuffer)
             </div>
         }
@@ -52,7 +52,7 @@ else if (_gameState != null)
     if (!_gameState.Fields.Any())
     {
         <div class="buttons">
-            @if (!_gameState.Player(_playerId).IsReady)
+            @if (_gameState.Player(_playerId)?.IsReady != true)
             {
                 <button @onclick="ReadyAsync" class=@_buttonClassName>Ready</button>
             }
@@ -61,7 +61,7 @@ else if (_gameState != null)
 
     if (_gameState.Winner is Player winner)
     {
-        <p class="winner player-@_gameState.WinnerIndex">@winner.Name won</p>
+        <p class="winner player-@_gameState.WinnerIndex">@winner.Name won!<br /> <a href="#" onclick="location.href = '/@(_gameState.NextGameId)'">Go to new game</a></p>
     }
 
     if (!_gameState.Fields.Any())
@@ -69,54 +69,79 @@ else if (_gameState != null)
         <div class="init">
             <p><strong>Game rules</strong></p>
 
-            <p>Durable Dice is a turn-based strategy game in which you must capture all fields.</p>
+            <p>Durable Dice is a turn-based strategy game. To win, you must capture all fields.</p>
 
             <p>
-                When attacking a field, your dice must win from the defending dice. If you win a battle,
+                When attacking a field, your dice must role more than the defending dice. If you win a battle,
                 all but one dice are moved to the captured field. You can attack any number of fields in
                 your turn, as long as the attacking field has 2 or more dice.
             </p>
 
             <p>
+                During any point in your turn, you can move a fixed amount of dice around. When moving, all dice
+                that are allowed to be moved are moved into the target field.
+            </p>
+
+            <p>
                 At the end of your turn, new dice are added randomly to your fields. The number of
                 new dice is equal to the biggest number of contiguous fields, so make sure you keep
-                your fields together.
+                your fields together and divide other players into smaller chunks.
             </p>
 
             <hr>
 
-            <p>Share url to invite your friends:<br /><code>@(NavManager.Uri)</code></p>
-
-            <hr />
+            <p>Share url:<br /><br /><code>@(NavManager.Uri)</code></p>
 
             @if (_gameState.PlayerIsOwner(_playerId))
             {
-                <EditForm Model="@(_gameState.Rules)">
-                    <p>
-                        <label>
-                            Start dice per field (1-8)
-                            <InputNumber @bind-Value="@(_gameState.Rules.StartDiceCountPerField)" min="1" max="8" step="1" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Initial dice buffer (0-50)
-                            <InputNumber @bind-Value="@(_gameState.Rules.InitialDiceBuffer)" min="0" max="50" step="1" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Dice generation multiplier (1.0 - 10.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DiceGenerationMultiplier)" min="1" max="10" />
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            Dead player count dice generation multiplier (0.0 - 2.0)
-                            <InputNumber @bind-Value="@(_gameState.Rules.DeadPlayerMultiplier)" min="0" max="2" />
-                        </label>
-                    </p>
-                </EditForm>
+                <hr>
+
+                <button @onclick="AddCheezyBotAsync">Add cheezy bot</button>
+                <button @onclick="AddStrategicBotAsync">Add strategic bot</button>
+                <button @onclick="AddNerdBotAsync">Add nerd bot</button>
+
+                <hr>
+
+                <p>
+                    These settings allow you to tweak the rules. Make only minor adjustments as these quickly
+                    ramp up the insanity of this game.
+                </p>
+
+                @if (_gameRules != null)
+                {
+                    <EditForm Model="@(_gameRules)">
+                        <p>
+                            <label>
+                                Start dice per field (1-8)
+                                <InputNumber @bind-Value="@(_gameRules.StartDiceCountPerField)" min="1" max="8" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Initial dice buffer (0-16)
+                                <InputNumber @bind-Value="@(_gameRules.InitialDiceBuffer)" min="0" max="16" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Max dice moves per turn (0-16)
+                                <InputNumber @bind-Value="@(_gameRules.MaxDiceMovedPerTurn)" min="0" max="16" step="1" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Dice generation multiplier (1.0 - 10.0)
+                                <InputNumber @bind-Value="@(_gameRules.DiceGenerationMultiplier)" min="1" max="10" step="0.01" />
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                Dead player count dice generation multiplier (0.0 - 2.0)
+                                <InputNumber @bind-Value="@(_gameRules.DeadPlayerMultiplier)" min="0" max="2" step="0.01" />
+                            </label>
+                        </p>
+                    </EditForm>
+                }
             }
         </div>
     }
@@ -131,7 +156,9 @@ else if (_gameState != null)
                 }
                 else if (_gameState.ActivePlayerId == _playerId)
                 {
-                    <p>It's your turn! Click on one of your fields and attack your neighbor or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
+                    var moveText = _gameState.Rules.MaxDiceMovedPerTurn == 0 ? "" : $", move ({_gameState.ActivePlayer.DiceMovesThisTurn} / {_gameState.Rules.MaxDiceMovedPerTurn})";
+
+                    <p>It's your turn! Attack@(moveText) or <button @onclick="EndRoundAsync" class=@_buttonClassName>end round</button></p>
                 }
                 else
                 {
@@ -140,19 +167,23 @@ else if (_gameState != null)
             </div>
         }
 
-        <div class="fields @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
-            @foreach (var (field, index) in _fields)
+        var ownedFields = string.Join(" ", _gameState.Fields.Where(x => x.OwnerId == _playerId).Select(x => $"is-owned-{x.Index}"));
+
+        <div class="fields @(ownedFields) @(_attacking ? "wait" : "") @(_gameHistoryFields != null ? "heatmap" : "")">
+            @foreach (var field in _gameState.Fields)
             {
                 var ownerIndex = _gameState.Players.FindIndex(x => x.Id == field.OwnerId);
                 var fieldModifier = field.Id[^1];
-                var className = $"hexagon field-{index} player-{ownerIndex}  mod-{fieldModifier}";
+                var className = $"hexagon field-{field.Index} player-{ownerIndex}  mod-{fieldModifier}";
                 var modifierClassName = "modifier";
-                var labelClassName = "label";
+                var labelClassName = $"label label-{field.Index} {((field.OwnerId == _playerId) ? "allied" : "enemy")}";
+
+                labelClassName += string.Join(" ", field.Neighbors.Select(i => $" neighbor-of-{i}"));
 
                 if (_gameState.ActivePlayerId == _playerId)
                 {
                     if (_playerId == field.OwnerId && field.DiceCount > 1 ||
-                    (field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && _gameState.Geometry.AreNeighboringFields(_fromFieldId, field.Id)))
+                    (field.OwnerId != _playerId && !string.IsNullOrWhiteSpace(_fromFieldId) && FieldGeometry.AreNeighboringFields(_gameState.Fields, _fromFieldId, field.Id)))
                     {
                         className += " field-attackable";
                         labelClassName += " field-attackable";
@@ -183,6 +214,11 @@ else if (_gameState != null)
                     {
                         modifierClassName += $" mod-{field.DiceAdded}-dice-added";
                     }
+
+                    if (field.Id == _gameState.PreviousMove?.AddedFieldId)
+                    {
+                        modifierClassName += $" mod-{_gameState.PreviousMove.Count}-dice-added";
+                    }
                 }
 
                 if (_gameHistoryFields != null)
@@ -204,7 +240,7 @@ else if (_gameState != null)
                 {
                     var (left, top) = Position(coordinate);
 
-                    <div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                    <div class=@className style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@(field.Index)'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
                         <div class="left"></div>
                         <div class="middle"></div>
                         <div class="right"></div>
@@ -224,7 +260,7 @@ else if (_gameState != null)
                 {
                     var (left, top) = Position(field.Center);
 
-                    <div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@index'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
+                    <div class=@labelClassName style="left: @(left)px; top: @(top)px;" @onclick=@(() => FieldClickAsync(field)) onmouseenter="this.parentNode.dataset.fieldhover = '@(field.Index)'" onmouseleave="this.parentNode.dataset.fieldhover = ''">
                         @field.DiceCount
                     </div>
                 }
@@ -249,6 +285,13 @@ else if (_gameState != null)
                 </div>
             </div>
         }
+
+        @if (_gameHistoryPlayers == null && _gameState.PreviousMove is Move move)
+        {
+            <div class="move player-@(_gameState.PlayerIndex(_gameState.ActivePlayer.Id))">
+                <p>@(_gameState.ActivePlayer.Name) moved @(move.Count) dice</p>
+            </div>
+        }
     }
 
     @if (_gameHistoryPlayers != null)
@@ -265,10 +308,10 @@ else if (_gameState != null)
             <tbody>
                 @foreach (var player in _gameHistoryPlayers)
                 {
-                    var p = _players.First(x => x.player.Id == player.PlayerId);
+                    var p = _gameState.Players.First(x => x.Id == player.PlayerId);
 
                     <tr>
-                        <td>@p.player.Name</td>
+                        <td>@p.Name</td>
                         <td>@player.NumberOfFieldsCaptured</td>
                         <td>@player.NumberOfFieldsLost</td>
                     </tr>

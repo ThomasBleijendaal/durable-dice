@@ -1,36 +1,37 @@
-﻿using DurableDice.Common.Models.History;
+﻿using Azure.Data.Tables;
+using DurableDice.Common.Models.History;
 using DurableDice.Common.Models.State;
-using Microsoft.Azure.Cosmos.Table;
 
-namespace DurableDice.Common.Services
+namespace DurableDice.Common.Services;
+
+public class GameHistoryService
 {
-    public class GameHistoryService
+    private readonly TableClient _tableClient;
+
+    public GameHistoryService(TableClient tableClient)
     {
-        private readonly CloudTable _tableClient;
+        _tableClient = tableClient;
+    }
 
-        public GameHistoryService(CloudTable tableClient)
+    public async Task AddGameStateAsync(string gameId, GameState state)
+    {
+        var history = await GetGameHistoryAsync(gameId);
+        if (history == null)
         {
-            _tableClient = tableClient;
+            history = new GameHistory(gameId, state);
+        }
+        else
+        {
+            history.AddState(state);
         }
 
-        public async Task AddGameStateAsync(string gameId, GameState state)
-        {
-            var history = await GetGameHistoryAsync(gameId);
-            if (history == null)
-            {
-                history = new GameHistory(gameId, state);
-            }
-            else
-            {
-                history.AddState(state);
-            }
+        await _tableClient.UpsertEntityAsync(history);
+    }
 
-            var updateOperation = TableOperation.InsertOrReplace(history);
-
-            await _tableClient.ExecuteAsync(updateOperation);
-        }
-
-        public async Task<GameHistory?> GetGameHistoryAsync(string gameId)
-            => (await _tableClient.ExecuteAsync(TableOperation.Retrieve<GameHistory>(gameId, gameId))).Result as GameHistory;
+    public async Task<GameHistory?> GetGameHistoryAsync(string gameId)
+    {
+        var result = await _tableClient.GetEntityIfExistsAsync<GameHistory>(gameId, gameId);
+        
+        return !result.HasValue ? null : result.Value;
     }
 }

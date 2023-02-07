@@ -50,6 +50,12 @@ button {
     text-align: center;
 }
 
+.winner a {
+    color: white;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .players {
     margin: 1rem;
     width: 100%;
@@ -123,24 +129,24 @@ button {
         color: white;
     }
 
-    .init {
-        display: block;
-        width: 90%;
-        margin: 0 auto;
-    }
+.init {
+    display: block;
+    width: 90%;
+    margin: 0 auto;
+}
 
-    p {
-        color: white;
-    }
+p {
+    color: white;
+}
 
-    form .label {
-        color: white;
-    }
+form .label {
+    color: white;
+}
 
-    form input {
-        display: block;
-        float: right;
-    }
+form input {
+    display: block;
+    float: right;
+}
 
 .hexagon {
     position: absolute;
@@ -345,6 +351,24 @@ button {
                 grid-area: g;
             }
 
+.move {
+    margin: 1rem auto;
+    width: 50%;
+    clear: both;
+}
+
+    .move p {
+        text-align: center;
+        display: block;
+        padding: 3px;
+        color: black;
+    }
+
+code {
+    font-family: monospace;
+    color: #d0d0f0;
+}
+
 .player-0, .player-0 > * {
     /* Yellow (Dark) */
     background-color: #ffc83d;
@@ -430,6 +454,78 @@ button {
     border-color: rgba(255, 255, 255, 0.4);
     animation: none;
 }
+
+/* TODO: this does really not work with attacking
+
+.is-owned-0[data-fieldhover="0"] .neighbor-of-0.allied,
+.is-owned-1[data-fieldhover="1"] .neighbor-of-1.allied,
+.is-owned-2[data-fieldhover="2"] .neighbor-of-2.allied,
+.is-owned-3[data-fieldhover="3"] .neighbor-of-3.allied,
+.is-owned-4[data-fieldhover="4"] .neighbor-of-4.allied,
+.is-owned-5[data-fieldhover="5"] .neighbor-of-5.allied,
+.is-owned-6[data-fieldhover="6"] .neighbor-of-6.allied,
+.is-owned-7[data-fieldhover="7"] .neighbor-of-7.allied,
+.is-owned-8[data-fieldhover="8"] .neighbor-of-8.allied,
+.is-owned-9[data-fieldhover="9"] .neighbor-of-9.allied,
+.is-owned-10[data-fieldhover="10"] .neighbor-of-10.allied,
+.is-owned-11[data-fieldhover="11"] .neighbor-of-11.allied,
+.is-owned-12[data-fieldhover="12"] .neighbor-of-12.allied,
+.is-owned-13[data-fieldhover="13"] .neighbor-of-13.allied,
+.is-owned-14[data-fieldhover="14"] .neighbor-of-14.allied,
+.is-owned-15[data-fieldhover="15"] .neighbor-of-15.allied,
+.is-owned-16[data-fieldhover="16"] .neighbor-of-16.allied,
+.is-owned-17[data-fieldhover="17"] .neighbor-of-17.allied,
+.is-owned-18[data-fieldhover="18"] .neighbor-of-18.allied,
+.is-owned-19[data-fieldhover="19"] .neighbor-of-19.allied,
+.is-owned-20[data-fieldhover="20"] .neighbor-of-20.allied,
+.is-owned-21[data-fieldhover="21"] .neighbor-of-21.allied,
+.is-owned-22[data-fieldhover="22"] .neighbor-of-22.allied,
+.is-owned-23[data-fieldhover="23"] .neighbor-of-23.allied,
+.is-owned-24[data-fieldhover="24"] .neighbor-of-24.allied,
+.is-owned-25[data-fieldhover="25"] .neighbor-of-25.allied,
+.is-owned-26[data-fieldhover="26"] .neighbor-of-26.allied,
+.is-owned-27[data-fieldhover="27"] .neighbor-of-27.allied,
+.is-owned-28[data-fieldhover="28"] .neighbor-of-28.allied,
+.is-owned-29[data-fieldhover="29"] .neighbor-of-29.allied,
+.is-owned-30[data-fieldhover="30"] .neighbor-of-30.allied,
+.is-owned-31[data-fieldhover="31"] .neighbor-of-31.allied {
+    text-shadow: 2px 2px 0 #0f0;
+}
+
+.is-owned-0[data-fieldhover="0"] .neighbor-of-0.enemy,
+.is-owned-1[data-fieldhover="1"] .neighbor-of-1.enemy,
+.is-owned-2[data-fieldhover="2"] .neighbor-of-2.enemy,
+.is-owned-3[data-fieldhover="3"] .neighbor-of-3.enemy,
+.is-owned-4[data-fieldhover="4"] .neighbor-of-4.enemy,
+.is-owned-5[data-fieldhover="5"] .neighbor-of-5.enemy,
+.is-owned-6[data-fieldhover="6"] .neighbor-of-6.enemy,
+.is-owned-7[data-fieldhover="7"] .neighbor-of-7.enemy,
+.is-owned-8[data-fieldhover="8"] .neighbor-of-8.enemy,
+.is-owned-9[data-fieldhover="9"] .neighbor-of-9.enemy,
+.is-owned-10[data-fieldhover="10"] .neighbor-of-10.enemy,
+.is-owned-11[data-fieldhover="11"] .neighbor-of-11.enemy,
+.is-owned-12[data-fieldhover="12"] .neighbor-of-12.enemy,
+.is-owned-13[data-fieldhover="13"] .neighbor-of-13.enemy,
+.is-owned-14[data-fieldhover="14"] .neighbor-of-14.enemy,
+.is-owned-15[data-fieldhover="15"] .neighbor-of-15.enemy,
+.is-owned-16[data-fieldhover="16"] .neighbor-of-16.enemy,
+.is-owned-17[data-fieldhover="17"] .neighbor-of-17.enemy,
+.is-owned-18[data-fieldhover="18"] .neighbor-of-18.enemy,
+.is-owned-19[data-fieldhover="19"] .neighbor-of-19.enemy,
+.is-owned-20[data-fieldhover="20"] .neighbor-of-20.enemy,
+.is-owned-21[data-fieldhover="21"] .neighbor-of-21.enemy,
+.is-owned-22[data-fieldhover="22"] .neighbor-of-22.enemy,
+.is-owned-23[data-fieldhover="23"] .neighbor-of-23.enemy,
+.is-owned-24[data-fieldhover="24"] .neighbor-of-24.enemy,
+.is-owned-25[data-fieldhover="25"] .neighbor-of-25.enemy,
+.is-owned-26[data-fieldhover="26"] .neighbor-of-26.enemy,
+.is-owned-27[data-fieldhover="27"] .neighbor-of-27.enemy,
+.is-owned-28[data-fieldhover="28"] .neighbor-of-28.enemy,
+.is-owned-29[data-fieldhover="29"] .neighbor-of-29.enemy,
+.is-owned-30[data-fieldhover="30"] .neighbor-of-30.enemy,
+.is-owned-31[data-fieldhover="31"] .neighbor-of-31.enemy {
+    text-shadow: 2px 2px 0 #f00;
+}*/
 
 [data-playerhover="0"] .player-1 *,
 [data-playerhover="0"] .player-2 *,

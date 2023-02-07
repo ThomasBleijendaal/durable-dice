@@ -10,7 +10,7 @@ public static class InvocationContextExtensions
             : throw new UnauthorizedAccessException();
 
     public static string GetPlayerId(this InvocationContext invocationContext)
-        => invocationContext.Claims.TryGetValue("nameid", out var playerId)
+        => invocationContext.Claims.TryGetValue("asrs.s.uid", out var playerId)
             ? playerId
             : throw new UnauthorizedAccessException();
 }

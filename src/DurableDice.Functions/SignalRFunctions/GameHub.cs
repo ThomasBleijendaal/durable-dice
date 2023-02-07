@@ -52,7 +52,7 @@ public class GameHub : ServerlessHub
 
         await Groups.AddToGroupAsync(invocationContext.ConnectionId, gameId);
 
-        var entity = await entityClient.ReadEntityStateAsync<GameState>(new EntityId(nameof(GameEntity), gameId));
+        var entity = await entityClient.ReadEntityStateAsync<GameState>(EntityId(gameId));
         if (entity.EntityExists)
         {
             await signalr.AddAsync(new SignalRMessage
@@ -63,6 +63,15 @@ public class GameHub : ServerlessHub
             });
         }
     }
+
+    [FunctionName(nameof(AddBot))]
+    public async Task AddBot(
+        [SignalRTrigger] InvocationContext invocationContext,
+        AddBotCommand command,
+        [DurableClient] IDurableClient durableClient)
+        => await durableClient.SignalEntityAsync<IGameEntity>(
+            EntityId(invocationContext.GetGameId()),
+            x => x.AddBotAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
     [FunctionName(nameof(AddPlayer))]
     public async Task AddPlayer(
@@ -90,14 +99,14 @@ public class GameHub : ServerlessHub
             EntityId(invocationContext.GetGameId()),
             x => x.ReadyWithRulesAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
-    [FunctionName(nameof(AttackField))]
-    public async Task AttackField(
+    [FunctionName(nameof(MoveField))]
+    public async Task MoveField(
         [SignalRTrigger] InvocationContext invocationContext,
-        AttackMoveCommand command,
+        MoveCommand command,
         [DurableClient] IDurableClient durableClient)
         => await durableClient.SignalEntityAsync<IGameEntity>(
             EntityId(invocationContext.GetGameId()),
-            x => x.AttackFieldAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
+            x => x.MoveFieldAsync(command with { PlayerId = invocationContext.GetPlayerId() }));
 
     [FunctionName(nameof(EndRound))]
     public async Task EndRound(
@@ -118,7 +127,7 @@ public class GameHub : ServerlessHub
     [FunctionName(nameof(OnDisconnected))]
     public void OnDisconnected([SignalRTrigger] InvocationContext invocationContext)
     {
-
+        // do nothing
     }
 
     private static EntityId EntityId(string gameId) => new EntityId(nameof(GameEntity), gameId);

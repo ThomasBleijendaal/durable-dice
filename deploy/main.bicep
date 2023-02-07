@@ -1,9 +1,11 @@
 param functionAppName string = 'durabledice'
 param functionAppKey string 
 
+param location string = resourceGroup().location
+
 resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: 'durabledice'
-  location: resourceGroup().location
+  location: location
   sku: {
     name: 'Standard_LRS'
   }
@@ -35,7 +37,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
     resource container 'containers' = {
       name: 'site'
       properties: {
-        'publicAccess': 'Blob'
+        publicAccess: 'Blob'
       }
     }
   }
@@ -51,7 +53,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
 
 resource hostingplan 'Microsoft.Web/serverfarms@2021-01-15' = {
   name: 'durabledice-asp'
-  location: resourceGroup().location
+  location: location
   kind: 'functionapp'
   sku: {
     name: 'Y1'
@@ -66,7 +68,7 @@ resource hostingplan 'Microsoft.Web/serverfarms@2021-01-15' = {
 
 resource signalr 'Microsoft.SignalRService/signalR@2021-06-01-preview' = {
   name: 'durabledicer'
-  location: resourceGroup().location
+  location: location
   sku: {
     capacity: 1
     name: 'Free_F1'
@@ -114,7 +116,7 @@ resource signalr 'Microsoft.SignalRService/signalR@2021-06-01-preview' = {
 
 resource functionapp 'Microsoft.Web/sites@2021-01-15' = {
   name: functionAppName
-  location: resourceGroup().location
+  location: location
   kind: 'functionapp'
   dependsOn: [
     storage

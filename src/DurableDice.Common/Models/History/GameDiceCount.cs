@@ -1,13 +1,12 @@
 ﻿using Newtonsoft.Json;
 
-namespace DurableDice.Common.Models.History
-{
-    public class GameCount
-    {
-        [JsonProperty("d")]
-        public List<int> DiceCount { get; set; } = null!;
+namespace DurableDice.Common.Models.History;
 
-        [JsonProperty("f")]
-        public List<int> FieldCount { get; set; } = null!;
-    }
+public class GameCount
+{
+    [JsonProperty("d")]
+    public List<int> DiceCount { get; set; } = null!;
+
+    [JsonProperty("f")]
+    public List<int> FieldCount { get; set; } = null!;
 }

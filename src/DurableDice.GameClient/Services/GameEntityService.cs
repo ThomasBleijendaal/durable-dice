@@ -31,16 +31,28 @@ public class GameEntityService : IGameEntity
     public event Action<GameState>? NewStateReceived;
     public event Action<bool>? ConnectionState;
 
+    public async Task InitAsync()
+    {
+        await _connection.StartAsync();
+        await _connection.SendAsync("JoinGame");
+    }
+
+    public async Task AddBotAsync(AddBotCommand command)
+    {
+        await _init;
+        await _connection.SendAsync("AddBot", command);
+    }
+
     public async Task AddPlayerAsync(AddPlayerCommand command)
     {
         await _init;
         await _connection.SendAsync("AddPlayer", command);
     }
 
-    public async Task AttackFieldAsync(AttackMoveCommand command)
+    public async Task MoveFieldAsync(MoveCommand command)
     {
         await _init;
-        await _connection.SendAsync("AttackField", command);
+        await _connection.SendAsync("MoveField", command);
     }
 
     public async Task EndRoundAsync(string playerId)
@@ -77,11 +89,5 @@ public class GameEntityService : IGameEntity
     {
         ConnectionState?.Invoke(true);
         return Task.CompletedTask;
-    }
-
-    private async Task InitAsync()
-    {
-        await _connection.StartAsync();
-        await _connection.SendAsync("JoinGame");
-    }
+    }   
 }
