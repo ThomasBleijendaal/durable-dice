@@ -69,6 +69,7 @@ public static class FieldGeometry
 
     public static IEnumerable<Coordinate> GetNeighboringCoordinates(Coordinate center)
     {
+        // TODO: this math does not work with V2
         if (center.X % 2 == 1)
         {
             yield return new Coordinate(center.X, center.Y - 1);
