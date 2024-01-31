@@ -8,6 +8,9 @@ type px
 [<Struct>]
 type Coordinate = { X: float; Y: float }
 
+type Coordinates = Coordinate array
+
+
 [<Struct>]
 type Position = { X: float<px>; Y: float<px> }
 
@@ -22,6 +25,8 @@ type EdgeType =
     | Right
     | RightTop
 
+type Neighbors = (Coordinate * (EdgeType array)) array
+
 type Field =
     { Id: int
 
@@ -31,15 +36,30 @@ type Field =
       Coordinates: Coordinate array
       Center: Coordinate }
 
-type GameState = { Fields: Field array }
+type Fields = Field array
 
+type GameState = { Fields: Fields }
 
-let x = 1.0 / sqrt 3.0
-let r = 20.0<px>
+let x = round (1000.0 / sqrt 3.0) / 1000.0
+let r = 30.0<px>
 let r2 = r * 2.0
 let rx = r * x
 
 let allEdges = [| LeftTop; Left; LeftBottom; RightBottom; Right; RightTop |]
+
+let isIdentical (e1: Position) (e2: Position) =
+    abs (e1.X - e2.X) < 0.1<px> && abs (e1.Y - e2.Y) < 0.1<px>
+
+let color () =
+    match System.Convert.ToInt32((new System.Random()).NextDouble() * 8.0) with
+    | 1 -> "#ffc83d"
+    | 2 -> "#e3008c"
+    | 3 -> "#4f6bed"
+    | 4 -> "#ca5010"
+    | 5 -> "#00b294"
+    | 6 -> "#498205"
+    | 7 -> "#881798"
+    | _ -> "#986f0b"
 
 let toPixelCoordinate (c: Coordinate) =
     { X = c.X * r2 - ((c.Y % 2.0 * r))
@@ -50,7 +70,7 @@ let currentState =
         [| { Id = 1
              DiceCount = 1
              DiceAdded = 0
-             Center = { X = 10; Y = 10 }
+             Center = { X = 7; Y = 5 }
              Coordinates =
                [| { X = 5; Y = 5 }
                   { X = 5; Y = 6 }
@@ -59,9 +79,20 @@ let currentState =
                   { X = 4; Y = 6 }
                   { X = 2; Y = 5 }
                   { X = 6; Y = 6 }
-                  { X = 8; Y = 8 } |] } |] }
-
-//let calculateOutline (c: Coordinate array) =
+                  { X = 8; Y = 8 } |] }
+           { Id = 2
+             DiceCount = 2
+             DiceAdded = 0
+             Center = { X = 12; Y = 12 }
+             Coordinates =
+               [| { X = 12; Y = 12 }
+                  { X = 11; Y = 12 }
+                  { X = 10; Y = 12 }
+                  { X = 11; Y = 11 }
+                  { X = 12; Y = 11 }
+                  { X = 13; Y = 12 }
+                  { X = 14; Y = 12 }
+                  { X = 14; Y = 13 } |] } |] }
 
 let neighbors (c: Coordinate) : (EdgeType * Coordinate) array =
     match c.Y % 2.0 with
@@ -91,86 +122,92 @@ let calculateEdge (edge: EdgeType) =
     | RightTop -> (fun c -> { X = c.X + r; Y = c.Y - rx }, { X = c.X; Y = c.Y - r })
 
 let calculateEdges (p: Position) =
-    allEdges 
-    |> Array.map (fun edge -> calculateEdge edge p)
+    allEdges |> Array.map (fun edge -> calculateEdge edge p)
 
-//let combineEdges (edges: Edge array) =
+// TODO: output Neighbors array
+let rec groupCoordinates (cs: Coordinates) : Coordinates array =
+    if cs.Length = 0 then
+        [||]
+    else
+        let firstCoordinate = [| cs[0] |]
 
-let calculateOuterEdges (cs: Coordinate array) : Edges array =
+        let rec loop (group: Coordinates) =
+            let groupNeighbors =
+                group
+                |> Array.map (fun c -> c |> neighbors |> Array.map snd)
+                |> Array.collect id
+                |> Array.filter (fun c -> group |> Array.contains c = false && cs |> Array.contains c = true)
 
-    cs
-    |> Array.map (fun c -> 
-        let p = c |> toPixelCoordinate
-        let neighbors = c |> neighbors
-        
-        neighbors
-        |> Array.map (fun neighbor ->
-            if cs |> Array.contains (snd neighbor) then
-                None
+            if groupNeighbors.Length = 0 then
+                group
             else
-                Some (calculateEdge (fst neighbor) p))
-        |> Array.choose id)
-    
+                loop (group |> Array.append groupNeighbors)
 
+        let group = loop firstCoordinate
 
-let color () =
-    match System.Convert.ToInt32((new System.Random()).NextDouble() * 8.0) with
-    | 1 -> "#ffc83d"
-    | 2 -> "#e3008c"
-    | 3 -> "#4f6bed"
-    | 4 -> "#ca5010"
-    | 5 -> "#00b294"
-    | 6 -> "#498205"
-    | 7 -> "#881798"
-    | _ -> "#986f0b"
+        let outGroup = cs |> Array.except group
 
-let drawEdges (ctx: CanvasRenderingContext2D) (color: string) (edges: Edges) =
+        if outGroup.Length = 0 then
+            [| group |]
+        else
+            [| group |] |> Array.append (groupCoordinates outGroup)
+
+let calculateOuterEdges (cs: Coordinates) : Edges array =
+    let coordinateGroups = cs |> groupCoordinates
+
+    // TODO: accept Neighbors
+    coordinateGroups
+    |> Array.map (fun group ->
+        group
+        |> Array.map (fun c ->
+            let p = c |> toPixelCoordinate
+            let neighbors = c |> neighbors
+
+            neighbors
+            |> Array.map (fun neighbor ->
+
+                let edgeType = fst neighbor
+                let neighborCoordinate = snd neighbor
+
+                let hasNeighbor = group |> Array.contains neighborCoordinate
+
+                if hasNeighbor then None else Some(calculateEdge edgeType p))
+            |> Array.choose id)
+        |> Array.collect id)
+
+let drawAlongEachEdge (edges: Edges) (init) (draw) =
     if edges.Length > 0 then
-
         let firstEdge = edges[0]
 
-        let rec loop (currentEdge: Edge) =
-            let startPos = currentEdge |> fst
+        init (firstEdge |> fst)
+
+        let rec loop (currentEdge: Edge) (index: int) =
             let endPos = currentEdge |> snd
 
-            let nextEdge = edges |> Array.tryFind (fun o -> o |> fst = endPos)
+            let nextEdge = edges |> Array.tryFind (fst >> isIdentical endPos)
 
-            ctx.lineTo (float startPos.X, float startPos.Y)
-            ctx.lineTo (float endPos.X, float endPos.Y)
+            draw endPos
 
             match nextEdge with
-            | Some edge when firstEdge <> edge -> loop edge
+            | Some edge when index < edges.Length -> loop edge (index + 1)
             | _ -> ()
 
-        ctx.beginPath ()
-        ctx.globalAlpha <- 0.6
-        ctx.fillStyle <- !^color
+        loop firstEdge 0
 
-        let first = firstEdge |> fst
-        ctx.moveTo (float first.X, float first.Y)
-        
-        loop firstEdge
+let drawEdges (ctx: CanvasRenderingContext2D) (color: string) (edges: Edges) =
 
-        ctx.fill ()
-        ctx.closePath ()
+    let draw = drawAlongEachEdge edges
 
-
-
-
-let drawEdgesOld (ctx: CanvasRenderingContext2D) (color: string) (edges: Edges) =
     if edges.Length > 0 then
+
         ctx.beginPath ()
         ctx.globalAlpha <- 0.6
         ctx.fillStyle <- !^color
 
-        let first = edges[0] |> fst
-        ctx.moveTo (float first.X, float first.Y)
+        draw (fun first -> ctx.moveTo (float first.X, float first.Y)) (fun pos -> ctx.lineTo (float pos.X, float pos.Y))
 
-        for edge in edges |> Array.map fst do
-            ctx.lineTo (float edge.X, float edge.Y)
-
-        ctx.fill ()
         ctx.closePath ()
+        ctx.fill ()
 
         ctx.beginPath ()
         ctx.globalAlpha <- 1
@@ -178,12 +215,7 @@ let drawEdgesOld (ctx: CanvasRenderingContext2D) (color: string) (edges: Edges) 
         ctx.strokeStyle <- !^color
         ctx.lineWidth <- 1
 
-        ctx.moveTo (float first.X, float first.Y)
-
-        for edge in edges |> Array.map fst do
-            ctx.lineTo (float edge.X, float edge.Y)
-
-        ctx.lineTo (float first.X, float first.Y)
+        draw (fun first -> ctx.moveTo (float first.X, float first.Y)) (fun pos -> ctx.lineTo (float pos.X, float pos.Y))
 
         ctx.stroke ()
         ctx.closePath ()
@@ -191,32 +223,13 @@ let drawEdgesOld (ctx: CanvasRenderingContext2D) (color: string) (edges: Edges) 
 let drawField (ctx: CanvasRenderingContext2D) (field: Field) =
 
     let draw = drawEdges ctx (color ())
-    let drawOld = drawEdgesOld ctx (color ())
 
-    field.Coordinates
-    |> Array.map (toPixelCoordinate >> calculateEdges)
-    |> Array.map drawOld
-    |> ignore
-
-    field.Coordinates 
-    |> calculateOuterEdges
-    |> Array.map draw
-    |> ignore
-
-    //let draw2 = drawEdges ctx (color ())
-    // field.Coordinates
-    // |> Array.map neighbors
-    // |> Array.collect id
-    // |> Array.map (snd >> toPixelCoordinate >> calculateEdges)
-    // |> Array.map draw2
-    // |> ignore
-
-    ignore
+    field.Coordinates |> calculateOuterEdges |> Array.map draw |> ignore
 
 
 let canvas = document.getElementById "canvas" :?> HTMLCanvasElement
 let ctx = canvas.getContext_2d ()
 
-
-
-currentState.Fields |> Array.map (drawField ctx) |> ignore
+currentState.Fields 
+|> Array.map (drawField ctx) 
+|> ignore
