@@ -2,14 +2,12 @@
 open Browser.Types
 open Fable.Core.JsInterop
 
-[<Measure>]
-type px
+[<Measure>] type px
 
 [<Struct>]
 type Coordinate = { X: float; Y: float }
 
 type Coordinates = Coordinate array
-
 
 [<Struct>]
 type Position = { X: float<px>; Y: float<px> }
@@ -73,26 +71,27 @@ let currentState =
              Center = { X = 7; Y = 5 }
              Coordinates =
                [| { X = 5; Y = 5 }
-                  { X = 5; Y = 6 }
-                  { X = 7; Y = 5 }
-                  { X = 4; Y = 5 }
-                  { X = 4; Y = 6 }
-                  { X = 2; Y = 5 }
-                  { X = 6; Y = 6 }
-                  { X = 8; Y = 8 } |] }
-           { Id = 2
-             DiceCount = 2
-             DiceAdded = 0
-             Center = { X = 12; Y = 12 }
-             Coordinates =
-               [| { X = 12; Y = 12 }
-                  { X = 11; Y = 12 }
-                  { X = 10; Y = 12 }
-                  { X = 11; Y = 11 }
-                  { X = 12; Y = 11 }
-                  { X = 13; Y = 12 }
-                  { X = 14; Y = 12 }
-                  { X = 14; Y = 13 } |] } |] }
+                //   { X = 8; Y = 8 }
+                //   { X = 7; Y = 5 }
+                //   { X = 4; Y = 5 }
+                //   { X = 4; Y = 6 }
+                //   { X = 2; Y = 5 }
+                //   { X = 6; Y = 6 }
+                  { X = 5; Y = 4 } |] }
+        //    { Id = 2
+        //      DiceCount = 2
+        //      DiceAdded = 0
+        //      Center = { X = 12; Y = 12 }
+        //      Coordinates =
+        //        [| { X = 12; Y = 12 }
+        //           { X = 11; Y = 12 }
+        //           { X = 10; Y = 12 }
+        //           { X = 11; Y = 11 }
+        //           { X = 12; Y = 11 }
+        //           { X = 13; Y = 12 }
+        //           { X = 14; Y = 12 }
+        //           { X = 14; Y = 13 } |] } 
+                  |] }
 
 let neighbors (c: Coordinate) : (EdgeType * Coordinate) array =
     match c.Y % 2.0 with
@@ -125,18 +124,44 @@ let calculateEdges (p: Position) =
     allEdges |> Array.map (fun edge -> calculateEdge edge p)
 
 // TODO: output Neighbors array
-let rec groupCoordinates (cs: Coordinates) : Coordinates array =
+let rec groupCoordinates (cs: Coordinates) : Neighbors array =
     if cs.Length = 0 then
         [||]
     else
-        let firstCoordinate = [| cs[0] |]
+        let firstCoordinate = [| (cs[0], cs[0] |> neighbors |> Array.map fst) |]
 
-        let rec loop (group: Coordinates) =
+        
+        for (c, es) in firstCoordinate do 
+            printf "Coordinate %f, %f" c.X c.Y
+            for e in es do
+                printf "Edge %s" (e.ToString())
+
+        printf "-------"
+
+        let rec loop (group: Neighbors) =
+            let groupCoordinates =
+                group
+                |> Array.map fst
+
             let groupNeighbors =
                 group
-                |> Array.map (fun c -> c |> neighbors |> Array.map snd)
+                //|> Array.map (fun c -> c |> neighbors |> Array.map snd)
+                |> Array.map (fun c -> 
+                    c 
+                    |> fst 
+                    |> neighbors
+                    // TODO: this neighbors EDGETYPE must be put on GROUP while the COORDINATES are the new things to check
+                    |> Array.groupBy snd
+                    |> Array.map (fun (c, g) -> (c, g |> Array.map fst)))
+                //|> Array.groupBy snd
                 |> Array.collect id
-                |> Array.filter (fun c -> group |> Array.contains c = false && cs |> Array.contains c = true)
+                |> Array.filter (fun (c, edgeTypes) -> 
+                    groupCoordinates |> Array.contains c = false && cs |> Array.contains c = true)
+
+            for (c, es) in groupNeighbors do 
+                printf "Coordinate %f, %f" c.X c.Y
+                for e in es do
+                    printf "Edge %s" (e.ToString())
 
             if groupNeighbors.Length = 0 then
                 group
@@ -145,7 +170,9 @@ let rec groupCoordinates (cs: Coordinates) : Coordinates array =
 
         let group = loop firstCoordinate
 
-        let outGroup = cs |> Array.except group
+        let groupC = group |> Array.map fst
+
+        let outGroup = cs |> Array.filter (fun c -> groupC |> Array.contains c = false)
 
         if outGroup.Length = 0 then
             [| group |]
@@ -159,20 +186,26 @@ let calculateOuterEdges (cs: Coordinates) : Edges array =
     coordinateGroups
     |> Array.map (fun group ->
         group
-        |> Array.map (fun c ->
+        |> Array.map (fun (c, edgeTypes) ->
             let p = c |> toPixelCoordinate
-            let neighbors = c |> neighbors
+            
+            printf "position %f, %f" p.X p.Y
 
-            neighbors
-            |> Array.map (fun neighbor ->
+            edgeTypes |> Array.map (fun edgeType -> calculateEdge edgeType p))
 
-                let edgeType = fst neighbor
-                let neighborCoordinate = snd neighbor
+            //let p = c |> toPixelCoordinate
+            //let neighbors = c |> neighbors
 
-                let hasNeighbor = group |> Array.contains neighborCoordinate
+            //edges
+            //|> Array.map (fun edgeType ->
 
-                if hasNeighbor then None else Some(calculateEdge edgeType p))
-            |> Array.choose id)
+                // let edgeType = fst neighbor
+                //let neighborCoordinate = snd neighbor
+
+                //let hasNeighbor = group |> Array.contains neighborCoordinate
+
+                //if hasNeighbor then None else Some(calculateEdge edgeType p))
+            //|> Array.choose id)
         |> Array.collect id)
 
 let drawAlongEachEdge (edges: Edges) (init) (draw) =

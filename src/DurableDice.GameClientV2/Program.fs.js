@@ -1,9 +1,10 @@
-import { Union, Record } from "./fable_modules/fable-library.4.11.0/Types.js";
+import { toString, Union, Record } from "./fable_modules/fable-library.4.11.0/Types.js";
 import { array_type, int32_type, union_type, record_type, float64_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
 import { safeHash, equals, round } from "./fable_modules/fable-library.4.11.0/Util.js";
 import { nonSeeded } from "./fable_modules/fable-library.4.11.0/Random.js";
-import { tryFind, choose, append, contains, collect, map } from "./fable_modules/fable-library.4.11.0/Array.js";
-import { Array_except } from "./fable_modules/fable-library.4.11.0/Seq2.js";
+import { tryFind, append, contains, collect, map } from "./fable_modules/fable-library.4.11.0/Array.js";
+import { printf, toConsole } from "./fable_modules/fable-library.4.11.0/String.js";
+import { Array_groupBy } from "./fable_modules/fable-library.4.11.0/Seq2.js";
 
 export class Coordinate extends Record {
     constructor(X, Y) {
@@ -115,7 +116,7 @@ export function toPixelCoordinate(c) {
     return new Position((c.X * r2) - ((c.Y % 2) * r), c.Y * (r2 - (r - rx)));
 }
 
-export const currentState = new GameState([new Field(1, 1, 0, [new Coordinate(5, 5), new Coordinate(5, 6), new Coordinate(7, 5), new Coordinate(4, 5), new Coordinate(4, 6), new Coordinate(2, 5), new Coordinate(6, 6), new Coordinate(8, 8)], new Coordinate(7, 5)), new Field(2, 2, 0, [new Coordinate(12, 12), new Coordinate(11, 12), new Coordinate(10, 12), new Coordinate(11, 11), new Coordinate(12, 11), new Coordinate(13, 12), new Coordinate(14, 12), new Coordinate(14, 13)], new Coordinate(12, 12))]);
+export const currentState = new GameState([new Field(1, 1, 0, [new Coordinate(5, 5), new Coordinate(5, 4)], new Coordinate(7, 5))]);
 
 export function neighbors(c) {
     if ((c.Y % 2) === 1) {
@@ -152,19 +153,41 @@ export function groupCoordinates(cs) {
         return [];
     }
     else {
-        const firstCoordinate = [cs[0]];
+        const firstCoordinate = [[cs[0], map((tuple) => tuple[0], neighbors(cs[0]))]];
+        for (let idx = 0; idx <= (firstCoordinate.length - 1); idx++) {
+            const forLoopVar = firstCoordinate[idx];
+            const es = forLoopVar[1];
+            const c_1 = forLoopVar[0];
+            toConsole(printf("Coordinate %f, %f"))(c_1.X)(c_1.Y);
+            for (let idx_1 = 0; idx_1 <= (es.length - 1); idx_1++) {
+                const e = es[idx_1];
+                const arg_2 = toString(e);
+                toConsole(printf("Edge %s"))(arg_2);
+            }
+        }
+        toConsole(printf("-------"));
         const loop = (group_mut) => {
             loop:
             while (true) {
                 const group = group_mut;
+                const groupCoordinates_1 = map((tuple_1) => tuple_1[0], group);
                 let groupNeighbors;
-                const array_5 = collect((x_1) => x_1, map((c) => map((tuple) => tuple[1], neighbors(c)), group));
-                groupNeighbors = array_5.filter((c_2) => {
-                    if (contains(c_2, group, {
+                const array_9 = collect((x_2) => x_2, map((c_2) => map((tupledArg) => {
+                    const c_4 = tupledArg[0];
+                    const g = tupledArg[1];
+                    return [c_4, map((tuple_4) => tuple_4[0], g)];
+                }, Array_groupBy((tuple_3) => tuple_3[1], neighbors(c_2[0]), {
+                    Equals: equals,
+                    GetHashCode: safeHash,
+                })), group));
+                groupNeighbors = array_9.filter((tupledArg_1) => {
+                    const c_5 = tupledArg_1[0];
+                    const edgeTypes = tupledArg_1[1];
+                    if (contains(c_5, groupCoordinates_1, {
                         Equals: equals,
                         GetHashCode: safeHash,
                     }) === false) {
-                        return contains(c_2, cs, {
+                        return contains(c_5, cs, {
                             Equals: equals,
                             GetHashCode: safeHash,
                         }) === true;
@@ -173,6 +196,17 @@ export function groupCoordinates(cs) {
                         return false;
                     }
                 });
+                for (let idx_2 = 0; idx_2 <= (groupNeighbors.length - 1); idx_2++) {
+                    const forLoopVar_1 = groupNeighbors[idx_2];
+                    const es_1 = forLoopVar_1[1];
+                    const c_6 = forLoopVar_1[0];
+                    toConsole(printf("Coordinate %f, %f"))(c_6.X)(c_6.Y);
+                    for (let idx_3 = 0; idx_3 <= (es_1.length - 1); idx_3++) {
+                        const e_1 = es_1[idx_3];
+                        const arg_5 = toString(e_1);
+                        toConsole(printf("Edge %s"))(arg_5);
+                    }
+                }
                 if (groupNeighbors.length === 0) {
                     return group;
                 }
@@ -184,39 +218,29 @@ export function groupCoordinates(cs) {
             }
         };
         const group_1 = loop(firstCoordinate);
-        const outGroup = Array_except(group_1, cs, {
+        const groupC = map((tuple_5) => tuple_5[0], group_1);
+        const outGroup = cs.filter((c_7) => (contains(c_7, groupC, {
             Equals: equals,
             GetHashCode: safeHash,
-        });
+        }) === false));
         if (outGroup.length === 0) {
             return [group_1];
         }
         else {
-            const array_9 = [group_1];
-            return append(groupCoordinates(outGroup), array_9);
+            const array_15 = [group_1];
+            return append(groupCoordinates(outGroup), array_15);
         }
     }
 }
 
 export function calculateOuterEdges(cs) {
     const coordinateGroups = groupCoordinates(cs);
-    return map((group) => collect((x_3) => x_3, map((c) => {
+    return map((group) => collect((x_1) => x_1, map((tupledArg) => {
+        const c = tupledArg[0];
+        const edgeTypes = tupledArg[1];
         const p = toPixelCoordinate(c);
-        const neighbors_1 = neighbors(c);
-        return choose((x_2) => x_2, map((neighbor) => {
-            const edgeType = neighbor[0];
-            const neighborCoordinate = neighbor[1];
-            const hasNeighbor = contains(neighborCoordinate, group, {
-                Equals: equals,
-                GetHashCode: safeHash,
-            });
-            if (hasNeighbor) {
-                return void 0;
-            }
-            else {
-                return calculateEdge(edgeType)(p);
-            }
-        }, neighbors_1));
+        toConsole(printf("position %f, %f"))(p.X)(p.Y);
+        return map((edgeType) => calculateEdge(edgeType)(p), edgeTypes);
     }, group)), coordinateGroups);
 }
 
