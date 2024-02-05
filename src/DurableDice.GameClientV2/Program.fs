@@ -1,77 +1,183 @@
 ﻿open Browser
 open Browser.Types
 open Fable.Core.JsInterop
+open Theme
+open HexMath
+open Models
+open Field
+open Hexagon
 
-[<Measure>]
-type px
-
-[<Struct>]
-type Coordinate = { X: int; Y: int }
-
-type Coordinates = Coordinate array
-
-[<Struct>]
-type Position = { X: float<px>; Y: float<px> }
-
-type Positions = Position array
-
-type Edge = Position * Position
-type Edges = Edge array
-
-type EdgeType =
-    | LeftTop
-    | Left
-    | LeftBottom
-    | RightBottom
-    | Right
-    | RightTop
-
-type Neighbors = (Coordinate * (EdgeType array)) array
-
-type Field =
-    { Id: int
-
-      DiceCount: int
-      DiceAdded: int
-
-      Coordinates: Coordinate array
-      Center: Coordinate }
-
-type Fields = Field array
-
+// mutable game state via signal r
 type GameState = { Fields: Fields }
 
-let x = round (1000.0 / sqrt 3.0) / 1000.0
-let r = 30.0<px>
-let r2 = r * 2.0
-let rx = r * x
+// mutable UI state
+let mutable selectedField : Field option = None
 
-let allEdges = [| LeftTop; Left; LeftBottom; RightBottom; Right; RightTop |]
+type IHexagonAnimation =
+    abstract member Applies: Hexagon -> bool
+    abstract member IsDone: bool
+    abstract member AnimateHexagon: CanvasRenderingContext2D * FieldHexagons * Hexagon -> unit
+    abstract member AnimateOuterEdge: CanvasRenderingContext2D * FieldHexagons * Hexagon -> unit
 
-let isIdentical (e1: Position) (e2: Position) =
-    abs (e1.X - e2.X) < 0.1<px> && abs (e1.Y - e2.Y) < 0.1<px>
+type DefaultAnimation () =
+    interface IHexagonAnimation with
+        member this.Applies (_) = true
+        member this.IsDone = false
+        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+            let edges = hexagon.AllEdges
 
-let color () =
-    match System.Convert.ToInt32((new System.Random()).NextDouble() * 8.0) with
-    | 1 -> "#ffc83d"
-    | 2 -> "#e3008c"
-    | 3 -> "#4f6bed"
-    | 4 -> "#ca5010"
-    | 5 -> "#00b294"
-    | 6 -> "#498205"
-    | 7 -> "#881798"
-    | _ -> "#986f0b"
+            let firstEdge = edges[0] |> fst
 
-let toPosition (c: Coordinate) =
-    { X = (float c.X) * r2 - ((float (c.Y % 2) * r))
-      Y = (float c.Y) * (r2 - (r - rx)) }
+            ctx.beginPath ()
+            ctx.fillStyle <- !^hexagons.Color
+            ctx.lineWidth <- 0.2
+            ctx.strokeStyle <- !^hexagons.Color
+            ctx.globalAlpha <- 0.6
+            ctx.shadowBlur <- 0
+            ctx.shadowColor <- null
+
+            ctx.moveTo (float firstEdge.X, float firstEdge.Y)
+
+            for (_, edge) in edges do
+                ctx.lineTo (float edge.X, float edge.Y)
+
+            ctx.closePath ()
+            ctx.stroke ()
+            ctx.fill ()
+
+        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+            hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
+                ctx.beginPath ()
+                ctx.globalAlpha <- 1
+                ctx.lineWidth <- 1
+                ctx.strokeStyle <- !^hexagons.Color
+                ctx.shadowBlur <- 0
+                ctx.shadowColor <- null
+                ctx.moveTo (float p1.X, float p1.Y)
+                ctx.lineTo (float p2.X, float p2.Y)
+                ctx.stroke ()
+                ctx.closePath ())
+
+type SelectedAnimation () =
+    interface IHexagonAnimation with
+        member this.Applies (hexagon) = match selectedField with | Some field -> field.Id = hexagon.FieldId | None -> false
+        member this.IsDone = false
+        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+            let edges = hexagon.AllEdges
+
+            let firstEdge = edges[0] |> fst
+
+            ctx.beginPath ()
+            ctx.fillStyle <- !^hexagons.Color
+            ctx.lineWidth <- 1
+            ctx.strokeStyle <- !^hexagons.Color
+            ctx.globalAlpha <- 0.8
+            ctx.shadowBlur <- 0
+            ctx.shadowColor <- null
+
+            ctx.moveTo (float firstEdge.X, float firstEdge.Y)
+
+            for (_, edge) in edges do
+                ctx.lineTo (float edge.X, float edge.Y)
+
+            ctx.closePath ()
+            ctx.stroke ()
+            ctx.fill ()
+
+        member this.AnimateOuterEdge (ctx, _, hexagon) =
+            hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
+                ctx.beginPath ()
+                ctx.globalAlpha <- 1
+                ctx.lineWidth <- 2
+                ctx.strokeStyle <- !^"white"
+                ctx.shadowBlur <- 5
+                ctx.shadowColor <- "white"
+                ctx.moveTo (float p1.X, float p1.Y)
+                ctx.lineTo (float p2.X, float p2.Y)
+                ctx.stroke ()
+                ctx.closePath ())
+
+type CapturedAnimation (fieldId) = 
+    let mutable progress = 0.0;
+    let max = 1000.0
+
+    interface IHexagonAnimation with
+        member this.Applies (hexagon) = hexagon.FieldId = fieldId
+        member this.IsDone = 
+            progress <- progress + 1.0
+            progress > max
+        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+            let edges = hexagon.AllEdges
+
+            let firstEdge = edges[0] |> fst
+
+            let gradient = ctx.createRadialGradient(
+                float hexagons.CenterPosition.X, 
+                float hexagons.CenterPosition.Y, 
+                0.0,
+                float hexagon.Position.X, 
+                float hexagon.Position.Y,
+                500.0)
+            gradient.addColorStop(1.0 - (progress / max), hexagons.Color)
+            gradient.addColorStop(0, "lime")
+
+            ctx.beginPath ()
+            ctx.fillStyle <- !^gradient
+            ctx.lineWidth <- 0.2
+            ctx.strokeStyle <- !^gradient
+            ctx.globalAlpha <- 0.6
+            ctx.shadowBlur <- 0
+            ctx.shadowColor <- null
+
+            ctx.moveTo (float firstEdge.X, float firstEdge.Y)
+
+            for (_, edge) in edges do
+                ctx.lineTo (float edge.X, float edge.Y)
+
+            ctx.closePath ()
+            ctx.stroke ()
+            ctx.fill ()
+
+        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+            hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
+                ctx.beginPath ()
+                ctx.globalAlpha <- 1
+                ctx.lineWidth <- 1
+                ctx.strokeStyle <- !^hexagons.Color
+                ctx.shadowBlur <- 0
+                ctx.shadowColor <- null
+                ctx.moveTo (float p1.X, float p1.Y)
+                ctx.lineTo (float p2.X, float p2.Y)
+                ctx.stroke ()
+                ctx.closePath ())
+
+let defaultAnimation : IHexagonAnimation = DefaultAnimation()
+let selectedAnimation : IHexagonAnimation = SelectedAnimation()
+
+let mutable runningAnimations: IHexagonAnimation array = [||]
+
+module Animation = 
+    let apply (method) (ctx, color, hexagon) = 
+        
+        let runningAnimation = runningAnimations |> Array.tryFind (fun animation -> animation.Applies(hexagon))
+
+        match runningAnimation with
+        | Some animation -> method animation (ctx, color, hexagon)
+        | None when selectedAnimation.Applies (hexagon) -> method selectedAnimation (ctx, color, hexagon)
+        | None -> method defaultAnimation (ctx, color, hexagon)
+        
+        if runningAnimation.IsSome then
+            runningAnimations <- runningAnimations |> Array.filter (fun animation -> animation.IsDone = false)
+
+let mutable capturedField : Field option = None
 
 let currentState =
     { Fields =
         [| { Id = 1
+             PlayerId = 0
              DiceCount = 1
              DiceAdded = 0
-             Center = { X = 7; Y = 5 }
+             Center = { X = 5; Y = 6 }
              Coordinates =
                [| { X = 5; Y = 4 }
                   { X = 5; Y = 5 }
@@ -87,9 +193,10 @@ let currentState =
                   { X = 3; Y = 6 }
                   { X = 5; Y = 6 } |] }
            { Id = 2
+             PlayerId = 1
              DiceCount = 2
              DiceAdded = 0
-             Center = { X = 12; Y = 12 }
+             Center = { X = 12; Y = 11 }
              Coordinates =
                [| { X = 12; Y = 12 }
                   { X = 11; Y = 12 }
@@ -100,9 +207,10 @@ let currentState =
                   { X = 14; Y = 12 }
                   { X = 14; Y = 13 } |] }
            { Id = 3
+             PlayerId = 2
              DiceCount = 2
              DiceAdded = 0
-             Center = { X = 12; Y = 12 }
+             Center = { X = 9; Y = 5 }
              Coordinates =
                [| { X = 7; Y = 6 }
                   { X = 8; Y = 5 }
@@ -113,198 +221,70 @@ let currentState =
                   { X = 10; Y = 7 }
                   { X = 10; Y = 8 } |] } |] }
 
-let neighbors (c: Coordinate) : (EdgeType * Coordinate) array =
-    match c.Y % 2 with
-    | 1 ->
-        [| (Left, { X = c.X - 1; Y = c.Y })
-           (LeftBottom, { X = c.X - 1; Y = c.Y + 1 })
-           (RightBottom, { X = c.X; Y = c.Y + 1 })
-           (Right, { X = c.X + 1; Y = c.Y })
-           (RightTop, { X = c.X; Y = c.Y - 1 })
-           (LeftTop, { X = c.X - 1; Y = c.Y - 1 }) |]
-    | _ ->
-        [| (LeftTop, { X = c.X; Y = c.Y - 1 })
-           (Left, { X = c.X - 1; Y = c.Y })
-           (LeftBottom, { X = c.X; Y = c.Y + 1 })
-           (RightBottom, { X = c.X + 1; Y = c.Y + 1 })
-           (Right, { X = c.X + 1; Y = c.Y })
-           (RightTop, { X = c.X + 1; Y = c.Y - 1 }) |]
+let drawFieldHexagons (ctx: CanvasRenderingContext2D) (hexagons: FieldHexagons) =
+    
+    for group in hexagons.Hexagons do
+        for hexagon in group do
+            Animation.apply (fun animation -> animation.AnimateHexagon) (ctx, hexagons, hexagon)
 
-let calculateEdge (edge: EdgeType) =
-    match edge with
-    | LeftTop -> (fun c -> { X = c.X; Y = c.Y - r }, { X = c.X - r; Y = c.Y - rx })
-    | Left -> (fun c -> { X = c.X - r; Y = c.Y - rx }, { X = c.X - r; Y = c.Y + rx })
-    | LeftBottom -> (fun c -> { X = c.X - r; Y = c.Y + rx }, { X = c.X; Y = c.Y + r })
+    for group in hexagons.Hexagons do
+        for hexagon in group do
+            Animation.apply (fun animation -> animation.AnimateOuterEdge) (ctx, hexagons, hexagon)
 
-    | RightBottom -> (fun c -> { X = c.X; Y = c.Y + r }, { X = c.X + r; Y = c.Y + rx })
-    | Right -> (fun c -> { X = c.X + r; Y = c.Y + rx }, { X = c.X + r; Y = c.Y - rx })
-    | RightTop -> (fun c -> { X = c.X + r; Y = c.Y - rx }, { X = c.X; Y = c.Y - r })
+let currentFieldHexagons = currentState.Fields |> Array.map Field.groupHexagons
 
-let calculateEdges (p: Position) =
-    allEdges |> Array.map (fun edge -> calculateEdge edge p)
+capturedField <- Some (currentState.Fields[0])
 
-let rec groupNeighbors (cs: Coordinates) : Neighbors array =
-    if cs.Length = 0 then
-        [||]
-    else
-        let rec loop (processedCoordinates: Coordinates) (nextCoordinates: Coordinates) =
-            let coordinateNeighbors =
-                nextCoordinates
-                |> Array.map (fun coordinate ->
-                    let neighborsOfCoordinate = coordinate |> neighbors
-
-                    let externalEdges =
-                        neighborsOfCoordinate
-                        |> Array.filter (fun (_, c) -> cs |> Array.contains c = false)
-                        |> Array.map fst
-
-                    // for e in externalEdges do
-                    //     printf "%d, %d has edge %s" coordinate.X coordinate.Y (e.ToString())
-
-                    let unprocessedNeighborsOfCoordinate =
-                        neighborsOfCoordinate
-                        |> Array.filter (fun (_, c) ->
-                            processedCoordinates |> Array.contains c = false
-                            && cs |> Array.contains c = true)
-                        |> Array.map snd
-
-                    (coordinate, externalEdges), unprocessedNeighborsOfCoordinate)
-
-            let coordinateEdges = coordinateNeighbors |> Array.map fst
-
-            let nextNeighborsToProcess =
-                coordinateNeighbors |> Array.map snd |> Array.collect id |> Array.distinct
-
-            let processedCoordinates =
-                processedCoordinates
-                |> Array.append (coordinateEdges |> Array.map fst)
-                |> Array.append nextNeighborsToProcess
-
-            if nextNeighborsToProcess.Length = 0 then
-                coordinateEdges
-            else
-                coordinateEdges
-                |> Array.append (loop processedCoordinates nextNeighborsToProcess)
-
-        let firstCoordinate = [| cs[0] |]
-
-        let coordinatesWithEdges = loop firstCoordinate firstCoordinate
-
-        let outGroup =
-            cs
-            |> Array.filter (fun c -> coordinatesWithEdges |> Array.map fst |> Array.contains c = false)
-
-        if outGroup.Length = 0 then
-            [| coordinatesWithEdges |]
-        else
-            [| coordinatesWithEdges |] |> Array.append (groupNeighbors outGroup)
-
-let calculateOuterEdges (neighborGroups: Neighbors array) : Edges array =
-    neighborGroups
-    |> Array.map (fun group ->
-        group
-        |> Array.map (fun (c, edgeTypes) ->
-            let p = c |> toPosition
-
-            edgeTypes |> Array.map (fun edgeType -> calculateEdge edgeType p))
-
-        |> Array.collect id)
-
-let calculatePositions (neighborGroups: Neighbors array) : Positions array =
-    neighborGroups
-    |> Array.map (fun group -> group |> Array.map (fun (c, _) -> c |> toPosition))
-
-let drawLine (ctx: CanvasRenderingContext2D) (color: string) ((p1, p2): Edge) =
-    ctx.beginPath ()
-    ctx.globalAlpha <- 1
-    ctx.lineWidth <- 1
-    ctx.strokeStyle <- !^color
-    ctx.moveTo (float p1.X, float p1.Y)
-    ctx.lineTo (float p2.X, float p2.Y)
-    ctx.stroke ()
-    ctx.closePath ()
-
-let drawGlowingLine (ctx: CanvasRenderingContext2D) (color: string) ((p1, p2): Edge) =
-    ctx.beginPath ()
-    ctx.globalAlpha <- 1
-    ctx.lineWidth <- 0
-    ctx.shadowBlur <- 5
-    ctx.shadowColor <- "white"
-    ctx.moveTo (float p1.X, float p1.Y)
-    ctx.lineTo (float p2.X, float p2.Y)
-    ctx.stroke ()
-    ctx.closePath ()
-
-let drawAllEdges (ctx: CanvasRenderingContext2D) (color: string) (drawLine) (edges: Edges) =
-    let drawLine = drawLine ctx color
-    edges |> Array.iter drawLine
-
-let drawHexagons (ctx: CanvasRenderingContext2D) (color: string) (positions: Positions) =
-    positions
-    |> Array.iter (fun position ->
-        let edges = position |> calculateEdges
-
-        let firstEdge = edges[0] |> fst
-
-        ctx.beginPath ()
-        ctx.fillStyle <- !^color
-        ctx.lineWidth <- 0.2
-        ctx.strokeStyle <- !^color
-        ctx.globalAlpha <- 0.6
-
-        ctx.moveTo (float firstEdge.X, float firstEdge.Y)
-
-        for (_, edge) in edges do
-            ctx.lineTo (float edge.X, float edge.Y)
-
-        ctx.closePath ()
-        ctx.stroke ()
-        ctx.fill ())
-
-let drawCoordinate (ctx: CanvasRenderingContext2D) (c: Coordinate) =
-    ctx.globalAlpha <- 1
-
-    ctx.strokeStyle <- !^ "white"
-    ctx.fillStyle <- !^ "white"
-
-    let pos = c |> toPosition
-
-    ctx.fillText ($"{c.X},{c.Y}", float pos.X, float pos.Y)
-
-let drawField (ctx: CanvasRenderingContext2D) (field: Field) =
-
-    let color = color ()
-
-    let drawHexagons = drawHexagons ctx color
-    let drawEdges = drawAllEdges ctx color drawLine
-    let drawOutline = drawAllEdges ctx color drawGlowingLine
-
-    let neighborGroups = field.Coordinates |> groupNeighbors
-
-    let neighborGroupPositions = neighborGroups |> calculatePositions
-    let outerEdges = neighborGroups |> calculateOuterEdges
-
-    neighborGroupPositions |> Array.iter drawHexagons
-    outerEdges |> Array.iter drawEdges
-
-    outerEdges |>Array.iter drawOutline
-
-    // let drawCoordinate = drawCoordinate ctx
-    // field.Coordinates |> Array.map drawCoordinate |> ignore
-
-let mousemove (event: MouseEvent) = 
-
-    printf "Mouse is at %f, %f" event.x event.y
-
-
-
-    ()
+let allHexagons = currentFieldHexagons |> Array.map (fun hexGroups -> hexGroups.Hexagons |> Array.collect id) |> Array.collect id
 
 let canvas = document.getElementById "canvas" :?> HTMLCanvasElement
-let ctx = canvas.getContext_2d ()
 
-//canvas.onmousemove <- mousemove
+let selectField (foundHexagon: Hexagon option) = 
+    let findField (id) = currentState.Fields |> Array.tryFind (fun field -> field.Id = id)
 
-currentState.Fields |> Array.take 1 |> Array.map (drawField ctx) |> ignore
+    match (foundHexagon, selectedField) with
+    | Some hex, None -> selectedField <- findField hex.FieldId
+    | Some hex, Some field when hex.FieldId <> field.Id -> selectedField <- findField hex.FieldId
+    | _ -> selectedField <- None
 
+let mouseclick (event: MouseEvent) =
 
+    let rect = canvas.getBoundingClientRect ()
+
+    let pos =
+        { X = (event.x - rect.left) * 1.0<px>
+          Y = (event.y - rect.top) * 1.0<px> }
+
+    let isHover = Hexagon.isInside pos
+
+    let foundHexagon = allHexagons |> Array.tryFind isHover
+
+    // selectField foundHexagon
+
+    match foundHexagon with
+    | Some hexagon -> runningAnimations <- [| CapturedAnimation(hexagon.FieldId) |]
+    | None -> ()
+
+canvas.onclick <- mouseclick
+
+let mutable previousTime = 0.0
+
+let rec draw (time: float) =
+    let delta = time - previousTime
+    
+    if delta > 10.0 then
+        previousTime <- time
+        
+        let w = canvas.width
+        let h = canvas.height
+
+        let ctx = canvas.getContext_2d ()
+
+        ctx.clearRect (0, 0, w, h)
+
+        for group in currentFieldHexagons do
+            drawFieldHexagons ctx group
+
+    window.requestAnimationFrame(draw >> ignore)
+
+draw 0 |> ignore

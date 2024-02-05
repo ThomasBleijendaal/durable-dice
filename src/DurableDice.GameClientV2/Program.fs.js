@@ -1,64 +1,10 @@
-import { Union, Record } from "./fable_modules/fable-library.4.11.0/Types.js";
-import { array_type, union_type, float64_type, record_type, int32_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
-import { curry3, safeHash, equals, round } from "./fable_modules/fable-library.4.11.0/Util.js";
-import { nonSeeded } from "./fable_modules/fable-library.4.11.0/Random.js";
-import { take, append, collect, contains, map } from "./fable_modules/fable-library.4.11.0/Array.js";
-import { Array_distinct } from "./fable_modules/fable-library.4.11.0/Seq2.js";
-import { printf, toConsole } from "./fable_modules/fable-library.4.11.0/String.js";
-
-export class Coordinate extends Record {
-    constructor(X, Y) {
-        super();
-        this.X = (X | 0);
-        this.Y = (Y | 0);
-    }
-}
-
-export function Coordinate_$reflection() {
-    return record_type("Program.Coordinate", [], Coordinate, () => [["X", int32_type], ["Y", int32_type]]);
-}
-
-export class Position extends Record {
-    constructor(X, Y) {
-        super();
-        this.X = X;
-        this.Y = Y;
-    }
-}
-
-export function Position_$reflection() {
-    return record_type("Program.Position", [], Position, () => [["X", float64_type], ["Y", float64_type]]);
-}
-
-export class EdgeType extends Union {
-    constructor(tag, fields) {
-        super();
-        this.tag = tag;
-        this.fields = fields;
-    }
-    cases() {
-        return ["LeftTop", "Left", "LeftBottom", "RightBottom", "Right", "RightTop"];
-    }
-}
-
-export function EdgeType_$reflection() {
-    return union_type("Program.EdgeType", [], EdgeType, () => [[], [], [], [], [], []]);
-}
-
-export class Field extends Record {
-    constructor(Id, DiceCount, DiceAdded, Coordinates, Center) {
-        super();
-        this.Id = (Id | 0);
-        this.DiceCount = (DiceCount | 0);
-        this.DiceAdded = (DiceAdded | 0);
-        this.Coordinates = Coordinates;
-        this.Center = Center;
-    }
-}
-
-export function Field_$reflection() {
-    return record_type("Program.Field", [], Field, () => [["Id", int32_type], ["DiceCount", int32_type], ["DiceAdded", int32_type], ["Coordinates", array_type(Coordinate_$reflection())], ["Center", Coordinate_$reflection()]]);
-}
+import { Record } from "./fable_modules/fable-library.4.11.0/Types.js";
+import { FieldModule_groupHexagons, Field, Field_$reflection } from "./Field.fs.js";
+import { class_type, record_type, array_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
+import { defaultOf, createAtom } from "./fable_modules/fable-library.4.11.0/Util.js";
+import { collect, map, tryFind } from "./fable_modules/fable-library.4.11.0/Array.js";
+import { Position, Coordinate } from "./Models.fs.js";
+import { HexagonModule_isInside } from "./Hexagon.fs.js";
 
 export class GameState extends Record {
     constructor(Fields) {
@@ -71,256 +17,323 @@ export function GameState_$reflection() {
     return record_type("Program.GameState", [], GameState, () => [["Fields", array_type(Field_$reflection())]]);
 }
 
-export const x = round(1000 / Math.sqrt(3)) / 1000;
+export let selectedField = createAtom(void 0);
 
-export const r = 30;
-
-export const r2 = r * 2;
-
-export const rx = r * x;
-
-export const allEdges = [new EdgeType(0, []), new EdgeType(1, []), new EdgeType(2, []), new EdgeType(3, []), new EdgeType(4, []), new EdgeType(5, [])];
-
-export function isIdentical(e1, e2) {
-    if (Math.abs(e1.X - e2.X) < 0.1) {
-        return Math.abs(e1.Y - e2.Y) < 0.1;
+export class DefaultAnimation {
+    constructor() {
     }
-    else {
+    Applies(_arg) {
+        return true;
+    }
+    get IsDone() {
         return false;
     }
-}
-
-export function color() {
-    const matchValue = ~~round(nonSeeded().NextDouble() * 8) | 0;
-    switch (matchValue) {
-        case 1:
-            return "#ffc83d";
-        case 2:
-            return "#e3008c";
-        case 3:
-            return "#4f6bed";
-        case 4:
-            return "#ca5010";
-        case 5:
-            return "#00b294";
-        case 6:
-            return "#498205";
-        case 7:
-            return "#881798";
-        default:
-            return "#986f0b";
-    }
-}
-
-export function toPosition(c) {
-    return new Position((c.X * r2) - ((c.Y % 2) * r), c.Y * (r2 - (r - rx)));
-}
-
-export const currentState = new GameState([new Field(1, 1, 0, [new Coordinate(5, 4), new Coordinate(5, 5), new Coordinate(6, 6), new Coordinate(7, 5), new Coordinate(6, 4), new Coordinate(5, 7), new Coordinate(3, 1), new Coordinate(3, 2), new Coordinate(3, 3), new Coordinate(2, 4), new Coordinate(4, 5), new Coordinate(3, 6), new Coordinate(5, 6)], new Coordinate(7, 5)), new Field(2, 2, 0, [new Coordinate(12, 12), new Coordinate(11, 12), new Coordinate(10, 12), new Coordinate(11, 11), new Coordinate(12, 11), new Coordinate(13, 12), new Coordinate(14, 12), new Coordinate(14, 13)], new Coordinate(12, 12)), new Field(3, 2, 0, [new Coordinate(7, 6), new Coordinate(8, 5), new Coordinate(8, 6), new Coordinate(9, 7), new Coordinate(9, 5), new Coordinate(10, 6), new Coordinate(10, 7), new Coordinate(10, 8)], new Coordinate(12, 12))]);
-
-export function neighbors(c) {
-    if ((c.Y % 2) === 1) {
-        return [[new EdgeType(1, []), new Coordinate(c.X - 1, c.Y)], [new EdgeType(2, []), new Coordinate(c.X - 1, c.Y + 1)], [new EdgeType(3, []), new Coordinate(c.X, c.Y + 1)], [new EdgeType(4, []), new Coordinate(c.X + 1, c.Y)], [new EdgeType(5, []), new Coordinate(c.X, c.Y - 1)], [new EdgeType(0, []), new Coordinate(c.X - 1, c.Y - 1)]];
-    }
-    else {
-        return [[new EdgeType(0, []), new Coordinate(c.X, c.Y - 1)], [new EdgeType(1, []), new Coordinate(c.X - 1, c.Y)], [new EdgeType(2, []), new Coordinate(c.X, c.Y + 1)], [new EdgeType(3, []), new Coordinate(c.X + 1, c.Y + 1)], [new EdgeType(4, []), new Coordinate(c.X + 1, c.Y)], [new EdgeType(5, []), new Coordinate(c.X + 1, c.Y - 1)]];
-    }
-}
-
-export function calculateEdge(edge) {
-    switch (edge.tag) {
-        case 1:
-            return (c_1) => [new Position(c_1.X - r, c_1.Y - rx), new Position(c_1.X - r, c_1.Y + rx)];
-        case 2:
-            return (c_2) => [new Position(c_2.X - r, c_2.Y + rx), new Position(c_2.X, c_2.Y + r)];
-        case 3:
-            return (c_3) => [new Position(c_3.X, c_3.Y + r), new Position(c_3.X + r, c_3.Y + rx)];
-        case 4:
-            return (c_4) => [new Position(c_4.X + r, c_4.Y + rx), new Position(c_4.X + r, c_4.Y - rx)];
-        case 5:
-            return (c_5) => [new Position(c_5.X + r, c_5.Y - rx), new Position(c_5.X, c_5.Y - r)];
-        default:
-            return (c) => [new Position(c.X, c.Y - r), new Position(c.X - r, c.Y - rx)];
-    }
-}
-
-export function calculateEdges(p) {
-    return map((edge) => calculateEdge(edge)(p), allEdges);
-}
-
-export function groupNeighbors(cs) {
-    if (cs.length === 0) {
-        return [];
-    }
-    else {
-        const loop = (processedCoordinates, nextCoordinates) => {
-            const coordinateNeighbors = map((coordinate) => {
-                const neighborsOfCoordinate = neighbors(coordinate);
-                const externalEdges = map((tuple) => tuple[0], neighborsOfCoordinate.filter((tupledArg) => {
-                    const c_1 = tupledArg[1];
-                    return contains(c_1, cs, {
-                        Equals: equals,
-                        GetHashCode: safeHash,
-                    }) === false;
-                }));
-                const unprocessedNeighborsOfCoordinate = map((tuple_1) => tuple_1[1], neighborsOfCoordinate.filter((tupledArg_1) => {
-                    const c_2 = tupledArg_1[1];
-                    if (contains(c_2, processedCoordinates, {
-                        Equals: equals,
-                        GetHashCode: safeHash,
-                    }) === false) {
-                        return contains(c_2, cs, {
-                            Equals: equals,
-                            GetHashCode: safeHash,
-                        }) === true;
-                    }
-                    else {
-                        return false;
-                    }
-                }));
-                return [[coordinate, externalEdges], unprocessedNeighborsOfCoordinate];
-            }, nextCoordinates);
-            const coordinateEdges = map((tuple_2) => tuple_2[0], coordinateNeighbors);
-            const nextNeighborsToProcess = Array_distinct(collect((x_4) => x_4, map((tuple_3) => tuple_3[1], coordinateNeighbors)), {
-                Equals: equals,
-                GetHashCode: safeHash,
-            });
-            const processedCoordinates_1 = append(nextNeighborsToProcess, append(map((tuple_4) => tuple_4[0], coordinateEdges), processedCoordinates));
-            if (nextNeighborsToProcess.length === 0) {
-                return coordinateEdges;
-            }
-            else {
-                return append(loop(processedCoordinates_1, nextNeighborsToProcess), coordinateEdges);
-            }
-        };
-        const firstCoordinate = [cs[0]];
-        const coordinatesWithEdges = loop(firstCoordinate, firstCoordinate);
-        const outGroup = cs.filter((c_3) => (contains(c_3, map((tuple_5) => tuple_5[0], coordinatesWithEdges), {
-            Equals: equals,
-            GetHashCode: safeHash,
-        }) === false));
-        if (outGroup.length === 0) {
-            return [coordinatesWithEdges];
-        }
-        else {
-            const array_22 = [coordinatesWithEdges];
-            return append(groupNeighbors(outGroup), array_22);
-        }
-    }
-}
-
-export function calculateOuterEdges(neighborGroups) {
-    return map((group) => collect((x_1) => x_1, map((tupledArg) => {
-        const c = tupledArg[0];
-        const edgeTypes = tupledArg[1];
-        const p = toPosition(c);
-        return map((edgeType) => calculateEdge(edgeType)(p), edgeTypes);
-    }, group)), neighborGroups);
-}
-
-export function calculatePositions(neighborGroups) {
-    return map((group) => map((tupledArg) => {
-        const c = tupledArg[0];
-        return toPosition(c);
-    }, group), neighborGroups);
-}
-
-export function drawLine(ctx_1, color_1, _arg1_, _arg1__1) {
-    const _arg = [_arg1_, _arg1__1];
-    const p2 = _arg[1];
-    const p1 = _arg[0];
-    ctx_1.beginPath();
-    ctx_1.globalAlpha = 1;
-    ctx_1.lineWidth = 1;
-    ctx_1.strokeStyle = color_1;
-    ctx_1.moveTo(p1.X, p1.Y);
-    ctx_1.lineTo(p2.X, p2.Y);
-    ctx_1.stroke();
-    ctx_1.closePath();
-}
-
-export function drawGlowingLine(ctx_1, color_1, _arg1_, _arg1__1) {
-    const _arg = [_arg1_, _arg1__1];
-    const p2 = _arg[1];
-    const p1 = _arg[0];
-    ctx_1.beginPath();
-    ctx_1.globalAlpha = 1;
-    ctx_1.lineWidth = 0;
-    ctx_1.shadowBlur = 5;
-    ctx_1.shadowColor = "white";
-    ctx_1.moveTo(p1.X, p1.Y);
-    ctx_1.lineTo(p2.X, p2.Y);
-    ctx_1.stroke();
-    ctx_1.closePath();
-}
-
-export function drawAllEdges(ctx_1, color_1, drawLine_1, edges) {
-    const drawLine_2 = curry3(drawLine_1)(ctx_1)(color_1);
-    edges.forEach(drawLine_2);
-}
-
-export function drawHexagons(ctx_1, color_1, positions) {
-    positions.forEach((position) => {
-        const edges = calculateEdges(position);
+    AnimateHexagon(ctx, hexagons, hexagon) {
+        const edges = hexagon.AllEdges;
         const firstEdge = edges[0][0];
-        ctx_1.beginPath();
-        ctx_1.fillStyle = color_1;
-        ctx_1.lineWidth = 0.2;
-        ctx_1.strokeStyle = color_1;
-        ctx_1.globalAlpha = 0.6;
-        ctx_1.moveTo(firstEdge.X, firstEdge.Y);
+        ctx.beginPath();
+        ctx.fillStyle = hexagons.Color;
+        ctx.lineWidth = 0.2;
+        ctx.strokeStyle = hexagons.Color;
+        ctx.globalAlpha = 0.6;
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = defaultOf();
+        ctx.moveTo(firstEdge.X, firstEdge.Y);
         for (let idx = 0; idx <= (edges.length - 1); idx++) {
             const edge = edges[idx][1];
-            ctx_1.lineTo(edge.X, edge.Y);
+            ctx.lineTo(edge.X, edge.Y);
         }
-        ctx_1.closePath();
-        ctx_1.stroke();
-        ctx_1.fill();
-    });
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+    AnimateOuterEdge(ctx, hexagons, hexagon) {
+        hexagon.OuterEdges.forEach((tupledArg) => {
+            const p1 = tupledArg[0];
+            const p2 = tupledArg[1];
+            ctx.beginPath();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = hexagons.Color;
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = defaultOf();
+            ctx.moveTo(p1.X, p1.Y);
+            ctx.lineTo(p2.X, p2.Y);
+            ctx.stroke();
+            ctx.closePath();
+        });
+    }
 }
 
-export function drawCoordinate(ctx_1, c) {
-    ctx_1.globalAlpha = 1;
-    ctx_1.strokeStyle = "white";
-    ctx_1.fillStyle = "white";
-    const pos = toPosition(c);
-    ctx_1.fillText(`${c.X},${c.Y}`, pos.X, pos.Y);
+export function DefaultAnimation_$reflection() {
+    return class_type("Program.DefaultAnimation", void 0, DefaultAnimation);
 }
 
-export function drawField(ctx_1, field) {
-    const color_1 = color();
-    const drawHexagons_1 = (positions) => {
-        drawHexagons(ctx_1, color_1, positions);
-    };
-    const drawEdges = (edges) => {
-        drawAllEdges(ctx_1, color_1, (ctx_2, color_2, tupledArg) => {
-            drawLine(ctx_2, color_2, tupledArg[0], tupledArg[1]);
-        }, edges);
-    };
-    const drawOutline = (edges_1) => {
-        drawAllEdges(ctx_1, color_1, (ctx_3, color_3, tupledArg_1) => {
-            drawGlowingLine(ctx_3, color_3, tupledArg_1[0], tupledArg_1[1]);
-        }, edges_1);
-    };
-    const neighborGroups = groupNeighbors(field.Coordinates);
-    const neighborGroupPositions = calculatePositions(neighborGroups);
-    const outerEdges = calculateOuterEdges(neighborGroups);
-    neighborGroupPositions.forEach(drawHexagons_1);
-    outerEdges.forEach(drawEdges);
-    outerEdges.forEach(drawOutline);
+export function DefaultAnimation_$ctor() {
+    return new DefaultAnimation();
 }
 
-export function mousemove(event) {
-    const arg = event.x;
-    const arg_1 = event.y;
-    toConsole(printf("Mouse is at %f, %f"))(arg)(arg_1);
+export class SelectedAnimation {
+    constructor() {
+    }
+    Applies(hexagon) {
+        if (selectedField() == null) {
+            return false;
+        }
+        else {
+            const field = selectedField();
+            return field.Id === hexagon.FieldId;
+        }
+    }
+    get IsDone() {
+        return false;
+    }
+    AnimateHexagon(ctx, hexagons, hexagon) {
+        const edges = hexagon.AllEdges;
+        const firstEdge = edges[0][0];
+        ctx.beginPath();
+        ctx.fillStyle = hexagons.Color;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = hexagons.Color;
+        ctx.globalAlpha = 0.8;
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = defaultOf();
+        ctx.moveTo(firstEdge.X, firstEdge.Y);
+        for (let idx = 0; idx <= (edges.length - 1); idx++) {
+            const edge = edges[idx][1];
+            ctx.lineTo(edge.X, edge.Y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+    AnimateOuterEdge(ctx, _arg, hexagon) {
+        hexagon.OuterEdges.forEach((tupledArg) => {
+            const p1 = tupledArg[0];
+            const p2 = tupledArg[1];
+            ctx.beginPath();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "white";
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = "white";
+            ctx.moveTo(p1.X, p1.Y);
+            ctx.lineTo(p2.X, p2.Y);
+            ctx.stroke();
+            ctx.closePath();
+        });
+    }
 }
+
+export function SelectedAnimation_$reflection() {
+    return class_type("Program.SelectedAnimation", void 0, SelectedAnimation);
+}
+
+export function SelectedAnimation_$ctor() {
+    return new SelectedAnimation();
+}
+
+export class CapturedAnimation {
+    constructor(fieldId) {
+        this.fieldId = (fieldId | 0);
+        this.progress = 0;
+        this.max = 1000;
+    }
+    Applies(hexagon) {
+        const this$ = this;
+        return hexagon.FieldId === this$.fieldId;
+    }
+    get IsDone() {
+        const this$ = this;
+        this$.progress = (this$.progress + 1);
+        return this$.progress > this$.max;
+    }
+    AnimateHexagon(ctx, hexagons, hexagon) {
+        const this$ = this;
+        const edges = hexagon.AllEdges;
+        const firstEdge = edges[0][0];
+        const gradient = ctx.createRadialGradient(hexagons.CenterPosition.X, hexagons.CenterPosition.Y, 0, hexagon.Position.X, hexagon.Position.Y, 500);
+        gradient.addColorStop(1 - (this$.progress / this$.max), hexagons.Color);
+        gradient.addColorStop(0, "lime");
+        ctx.beginPath();
+        ctx.fillStyle = gradient;
+        ctx.lineWidth = 0.2;
+        ctx.strokeStyle = gradient;
+        ctx.globalAlpha = 0.6;
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = defaultOf();
+        ctx.moveTo(firstEdge.X, firstEdge.Y);
+        for (let idx = 0; idx <= (edges.length - 1); idx++) {
+            const edge = edges[idx][1];
+            ctx.lineTo(edge.X, edge.Y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+    AnimateOuterEdge(ctx, hexagons, hexagon) {
+        hexagon.OuterEdges.forEach((tupledArg) => {
+            const p1 = tupledArg[0];
+            const p2 = tupledArg[1];
+            ctx.beginPath();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = hexagons.Color;
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = defaultOf();
+            ctx.moveTo(p1.X, p1.Y);
+            ctx.lineTo(p2.X, p2.Y);
+            ctx.stroke();
+            ctx.closePath();
+        });
+    }
+}
+
+export function CapturedAnimation_$reflection() {
+    return class_type("Program.CapturedAnimation", void 0, CapturedAnimation);
+}
+
+export function CapturedAnimation_$ctor_Z524259A4(fieldId) {
+    return new CapturedAnimation(fieldId);
+}
+
+export const defaultAnimation = DefaultAnimation_$ctor();
+
+export const selectedAnimation = SelectedAnimation_$ctor();
+
+export let runningAnimations = createAtom([]);
+
+export function Animation_apply(method, ctx, color, hexagon) {
+    let array_1;
+    const runningAnimation = tryFind((animation) => animation.Applies(hexagon), runningAnimations());
+    if (runningAnimation == null) {
+        if (selectedAnimation.Applies(hexagon)) {
+            method(selectedAnimation, [ctx, color, hexagon]);
+        }
+        else {
+            method(defaultAnimation, [ctx, color, hexagon]);
+        }
+    }
+    else {
+        const animation_1 = runningAnimation;
+        method(animation_1, [ctx, color, hexagon]);
+    }
+    if (runningAnimation != null) {
+        runningAnimations((array_1 = runningAnimations(), array_1.filter((animation_2) => (animation_2.IsDone === false))));
+    }
+}
+
+export let capturedField = createAtom(void 0);
+
+export const currentState = new GameState([new Field(1, 0, 1, 0, [new Coordinate(5, 4), new Coordinate(5, 5), new Coordinate(6, 6), new Coordinate(7, 5), new Coordinate(6, 4), new Coordinate(5, 7), new Coordinate(3, 1), new Coordinate(3, 2), new Coordinate(3, 3), new Coordinate(2, 4), new Coordinate(4, 5), new Coordinate(3, 6), new Coordinate(5, 6)], new Coordinate(5, 6)), new Field(2, 1, 2, 0, [new Coordinate(12, 12), new Coordinate(11, 12), new Coordinate(10, 12), new Coordinate(11, 11), new Coordinate(12, 11), new Coordinate(13, 12), new Coordinate(14, 12), new Coordinate(14, 13)], new Coordinate(12, 11)), new Field(3, 2, 2, 0, [new Coordinate(7, 6), new Coordinate(8, 5), new Coordinate(8, 6), new Coordinate(9, 7), new Coordinate(9, 5), new Coordinate(10, 6), new Coordinate(10, 7), new Coordinate(10, 8)], new Coordinate(9, 5))]);
+
+export function drawFieldHexagons(ctx, hexagons) {
+    const arr = hexagons.Hexagons;
+    for (let idx = 0; idx <= (arr.length - 1); idx++) {
+        const group = arr[idx];
+        for (let idx_1 = 0; idx_1 <= (group.length - 1); idx_1++) {
+            const hexagon = group[idx_1];
+            Animation_apply((animation, tupledArg) => {
+                animation.AnimateHexagon(tupledArg[0], tupledArg[1], tupledArg[2]);
+            }, ctx, hexagons, hexagon);
+        }
+    }
+    const arr_1 = hexagons.Hexagons;
+    for (let idx_2 = 0; idx_2 <= (arr_1.length - 1); idx_2++) {
+        const group_1 = arr_1[idx_2];
+        for (let idx_3 = 0; idx_3 <= (group_1.length - 1); idx_3++) {
+            const hexagon_1 = group_1[idx_3];
+            Animation_apply((animation_1, tupledArg_1) => {
+                animation_1.AnimateOuterEdge(tupledArg_1[0], tupledArg_1[1], tupledArg_1[2]);
+            }, ctx, hexagons, hexagon_1);
+        }
+    }
+}
+
+export const currentFieldHexagons = map(FieldModule_groupHexagons, currentState.Fields);
+
+capturedField(currentState.Fields[0]);
+
+export const allHexagons = collect((x_1) => x_1, map((hexGroups) => collect((x) => x, hexGroups.Hexagons), currentFieldHexagons));
 
 export const canvas = document.getElementById("canvas");
 
-export const ctx = canvas.getContext('2d');
+export function selectField(foundHexagon) {
+    let hex, field_1;
+    const findField = (id) => tryFind((field) => (field.Id === id), currentState.Fields);
+    const matchValue = selectedField();
+    let matchResult, hex_1, field_2, hex_2;
+    if (foundHexagon != null) {
+        if (matchValue != null) {
+            if ((hex = foundHexagon, (field_1 = matchValue, hex.FieldId !== field_1.Id))) {
+                matchResult = 1;
+                field_2 = matchValue;
+                hex_2 = foundHexagon;
+            }
+            else {
+                matchResult = 2;
+            }
+        }
+        else {
+            matchResult = 0;
+            hex_1 = foundHexagon;
+        }
+    }
+    else {
+        matchResult = 2;
+    }
+    switch (matchResult) {
+        case 0: {
+            selectedField(findField(hex_1.FieldId));
+            break;
+        }
+        case 1: {
+            selectedField(findField(hex_2.FieldId));
+            break;
+        }
+        case 2: {
+            selectedField(void 0);
+            break;
+        }
+    }
+}
 
-map((field) => {
-    drawField(ctx, field);
-}, take(1, currentState.Fields));
+export function mouseclick(event) {
+    const rect = canvas.getBoundingClientRect();
+    const pos = new Position((event.x - rect.left) * 1, (event.y - rect.top) * 1);
+    const isHover = (hex) => HexagonModule_isInside(pos, hex);
+    const foundHexagon = tryFind(isHover, allHexagons);
+    if (foundHexagon == null) {
+    }
+    else {
+        const hexagon = foundHexagon;
+        runningAnimations([CapturedAnimation_$ctor_Z524259A4(hexagon.FieldId)]);
+    }
+}
+
+canvas.onclick = ((event) => {
+    mouseclick(event);
+});
+
+export let previousTime = createAtom(0);
+
+export function draw(time) {
+    const delta = time - previousTime();
+    if (delta > 10) {
+        previousTime(time);
+        const w = canvas.width;
+        const h = canvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, w, h);
+        for (let idx = 0; idx <= (currentFieldHexagons.length - 1); idx++) {
+            const group = currentFieldHexagons[idx];
+            drawFieldHexagons(ctx, group);
+        }
+    }
+    return window.requestAnimationFrame((arg) => {
+        draw(arg);
+    });
+}
+
+draw(0);
 

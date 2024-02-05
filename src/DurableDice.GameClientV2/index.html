@@ -4,9 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fable</title>
+    <style>
+      body { margin: 0; padding: 0; background-color: black; }
+      canvas {  background-color: black; }
+    </style>
   </head>
   <body>
-    <canvas id="canvas" width="1200" height="800" style="background-color: black"></canvas>
+    <canvas id="canvas" width="1200" height="800"></canvas>
+    <script type="module" src="/Theme.fs.js"></script>
+    <script type="module" src="/HexMath.fs.js"></script>
+    <script type="module" src="/Models.fs.js"></script>
+    <script type="module" src="/Hexagon.fs.js"></script>
+    <script type="module" src="/Field.fs.js"></script>
     <script type="module" src="/Program.fs.js"></script>
   </body>
 </html>

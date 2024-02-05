@@ -1,17 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
+    <Compile Include="Theme.fs" />
+    <Compile Include="HexMath.fs" />
+    <Compile Include="Models.fs" />
+    <Compile Include="Hexagon.fs" />
+    <Compile Include="Field.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Fable.Browser.Dom" Version="2.16.0" />
     <PackageReference Include="Fable.Core" Version="4.3.0" />
   </ItemGroup>
-
 </Project>
