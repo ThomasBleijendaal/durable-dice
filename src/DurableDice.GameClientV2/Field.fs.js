@@ -8,19 +8,21 @@ import { Array_distinct } from "./fable_modules/fable-library.4.11.0/Seq2.js";
 import { color } from "./Theme.fs.js";
 
 export class Field extends Record {
-    constructor(Id, PlayerId, DiceCount, DiceAdded, Coordinates, Center) {
+    constructor(Index, Id, OwnerId, DiceCount, DiceAdded, Coordinates, Center, Neighbors) {
         super();
+        this.Index = (Index | 0);
         this.Id = (Id | 0);
-        this.PlayerId = (PlayerId | 0);
+        this.OwnerId = (OwnerId | 0);
         this.DiceCount = (DiceCount | 0);
         this.DiceAdded = (DiceAdded | 0);
         this.Coordinates = Coordinates;
         this.Center = Center;
+        this.Neighbors = Neighbors;
     }
 }
 
 export function Field_$reflection() {
-    return record_type("Field.Field", [], Field, () => [["Id", int32_type], ["PlayerId", int32_type], ["DiceCount", int32_type], ["DiceAdded", int32_type], ["Coordinates", array_type(Coordinate_$reflection())], ["Center", Coordinate_$reflection()]]);
+    return record_type("Field.Field", [], Field, () => [["Index", int32_type], ["Id", int32_type], ["OwnerId", int32_type], ["DiceCount", int32_type], ["DiceAdded", int32_type], ["Coordinates", array_type(Coordinate_$reflection())], ["Center", Coordinate_$reflection()], ["Neighbors", array_type(int32_type)]]);
 }
 
 export function FieldModule_groupHexagons(field) {
@@ -92,6 +94,6 @@ export function FieldModule_groupHexagons(field) {
         }
     };
     const hexagons = loopCoordinates(field.Coordinates);
-    return new FieldHexagons(field.Id, field.Center, CoordinateModule_toPosition(field.Center), color(field.PlayerId), hexagons);
+    return new FieldHexagons(field.Id, field.Center, CoordinateModule_toPosition(field.Center), color(field.OwnerId), hexagons);
 }
 

@@ -5,14 +5,19 @@ open Models
 open Hexagon
 
 type Field =
-    { Id: int
-      PlayerId: int
+    { 
+        Index: int
 
-      DiceCount: int
-      DiceAdded: int
+        Id: int
+        OwnerId: int
 
-      Coordinates: Coordinate array
-      Center: Coordinate }
+        DiceCount: int
+        DiceAdded: int
+
+        Coordinates: Coordinate array
+        Center: Coordinate
+
+        Neighbors: int array }
 
 type Fields = Field array
 
@@ -88,7 +93,7 @@ module Field =
             Center = field.Center
             CenterPosition = field.Center |> Coordinate.toPosition
 
-            Color = Theme.color(Some field.PlayerId)
+            Color = Theme.color(Some field.OwnerId)
 
             Hexagons = hexagons
         }

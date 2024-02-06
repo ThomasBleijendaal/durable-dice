@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using DurableDice.Common.Abstractions;
+using DurableDice.Common.Enums;
 using DurableDice.Common.Models.Commands;
 using DurableDice.Common.Models.State;
 using DurableDice.Functions.Entities;
@@ -10,6 +11,7 @@ using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace DurableDice.Functions.SignalRFunctions;
 
@@ -22,6 +24,8 @@ public class GameHub : ServerlessHub
     {
         try
         {
+            return Negotiate(Guid.NewGuid().ToString(), new[] { new Claim("gid", Guid.NewGuid().ToString()) });
+
             if (req.Headers.TryGetValue("x-gameid", out var gameId) &&
                 req.Headers.TryGetValue("x-playerid", out var playerId))
             {
@@ -42,6 +46,38 @@ public class GameHub : ServerlessHub
         logger.LogInformation($"{invocationContext.ConnectionId} has connected");
     }
 
+    // F# frontend pushes to same method
+    [FunctionName(nameof(Send))]
+    public async Task Send(
+        [SignalRTrigger] InvocationContext invocationContext,
+        [SignalR(HubName = nameof(GameHub))] IAsyncCollector<SignalRMessage> signalr,
+        [DurableClient] IDurableClient durableClient)
+    {
+        if (invocationContext.Arguments[0] is string command && command == "JoinGame")
+        {
+            await JoinGame(invocationContext, signalr, durableClient);
+        }
+        else if (invocationContext.Arguments[0] is JArray commandParts)
+        {
+            var result = commandParts.Values<string>().OfType<string>().ToArray() switch
+            {
+                { Length: 3 } addBot when addBot[0].Equals("AddBot") => AddBot(invocationContext, new(invocationContext.GetPlayerId(), Enum.Parse<BotType>(addBot[2])), durableClient),
+                { Length: 3 } addPlayer when addPlayer[0].Equals("AddPlayer") => AddPlayer(invocationContext, new(invocationContext.GetPlayerId(), addPlayer[2]), durableClient),
+                { Length: 2 } removePlayer when removePlayer[0].Equals("RemovePlayer") => RemovePlayer(invocationContext, durableClient),
+                { Length: 4 } moveField when moveField[0].Equals("MoveField") => MoveField(invocationContext, new(invocationContext.GetPlayerId(), moveField[2], moveField[3]), durableClient),
+                { Length: 2 } endRound when endRound[0].Equals("EndRound") => EndRound(invocationContext, durableClient),
+                { Length: 1 } ready when ready[0].Equals("Ready") => Ready(invocationContext, durableClient),
+                // TODO: parse rules
+                { Length: 2 } ready when ready[0].Equals("ReadyWithRules") => ReadyWithRules(invocationContext, new(invocationContext.GetPlayerId(), new()), durableClient),
+
+                _ => Task.CompletedTask
+            };
+
+            await result;
+        }
+
+    }
+
     [FunctionName(nameof(JoinGame))]
     public async Task JoinGame(
         [SignalRTrigger] InvocationContext invocationContext,
@@ -58,8 +94,8 @@ public class GameHub : ServerlessHub
             await signalr.AddAsync(new SignalRMessage
             {
                 GroupName = gameId,
-                Arguments = new object[] { entity.EntityState },
-                Target = "Broadcast"
+                Arguments = new object[] { new { connectionId = Guid.NewGuid(), invocationId = Guid.NewGuid(), message = new object[] { this } } },
+                Target = "Send"
             });
         }
     }

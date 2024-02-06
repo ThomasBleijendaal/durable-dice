@@ -151,7 +151,7 @@ public class GameEntity : GameState, IGameEntity
 
             ActivePlayerId = Players.RandomItem().Id;
 
-            var fieldCountPerPlayer = (32 / Players.Count) * (Rules.StartDiceCountPerField - 1);
+            var fieldCountPerPlayer = 32 / Players.Count * (Rules.StartDiceCountPerField - 1);
 
             Fields = FieldGenerator.GenerateFields(Players);
 
@@ -211,7 +211,7 @@ public class GameEntity : GameState, IGameEntity
 
     private void Move(Field fromField, Field toField)
     {
-        var diceToMove = Math.Min(Rules.MaxDiceMovedPerTurn - ActivePlayer.DiceMovesThisTurn, 
+        var diceToMove = Math.Min(Rules.MaxDiceMovedPerTurn - ActivePlayer.DiceMovesThisTurn,
             Math.Min(toField.MaxDiceAllowedToAdd, fromField.DiceCount - 1));
 
         if (diceToMove == 0)
@@ -310,8 +310,8 @@ public class GameEntity : GameState, IGameEntity
         => await _signalr.AddAsync(new SignalRMessage
         {
             GroupName = _gameId,
-            Arguments = new object[] { this },
-            Target = "Broadcast"
+            Arguments = new object[] { new { connectionId = Guid.NewGuid(), invocationId = Guid.NewGuid(), message = new object[] { this } } },
+            Target = "Send"
         });
 
     private void SelectNextActivePlayer(string playerId)

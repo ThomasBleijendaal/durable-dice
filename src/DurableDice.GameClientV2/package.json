@@ -11,5 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "vite": "^5.0.12"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^8.0.0"
   }
 }
