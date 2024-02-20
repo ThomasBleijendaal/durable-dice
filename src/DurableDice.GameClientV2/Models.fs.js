@@ -1,6 +1,6 @@
 import { Union, Record } from "./fable_modules/fable-library.4.11.0/Types.js";
-import { union_type, float64_type, record_type, int32_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
-import { HexMath_rx, HexMath_r, HexMath_r2 } from "./HexMath.fs.js";
+import { bool_type, array_type, string_type, union_type, float64_type, record_type, int32_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
+import { HexMath_rx, HexMath_paddingTop, HexMath_r, HexMath_r2, HexMath_paddingLeft } from "./HexMath.fs.js";
 import { map } from "./fable_modules/fable-library.4.11.0/Array.js";
 
 export class Coordinate extends Record {
@@ -42,8 +42,17 @@ export function EdgeType_$reflection() {
     return union_type("Models.EdgeType", [], EdgeType, () => [[], [], [], [], [], []]);
 }
 
+export function CoordinateModule_isSame(c1, c2) {
+    if (c1.X === c2.X) {
+        return c1.Y === c2.Y;
+    }
+    else {
+        return false;
+    }
+}
+
 export function CoordinateModule_toPosition(c) {
-    return new Position((c.X * HexMath_r2) - ((c.Y % 2) * HexMath_r), c.Y * (HexMath_r2 - (HexMath_r - HexMath_rx)));
+    return new Position(HexMath_paddingLeft + ((c.X * HexMath_r2) - ((c.Y % 2) * HexMath_r)), HexMath_paddingTop + (c.Y * (HexMath_r2 - (HexMath_r - HexMath_rx))));
 }
 
 export function CoordinateModule_neighbors(c) {
@@ -82,5 +91,124 @@ export function PositionModule_distance(pos1, pos2) {
 
 export function PositionModule_calculateEdges(pos) {
     return map((edge) => EdgeTypeModule_calculateEdge(edge)(pos), PositionModule_allEdges);
+}
+
+export class Attack extends Record {
+    constructor(AttackerId, AttackingFieldId, AttackingDiceCount, DefenderId, DefendingFieldId, DefendingDiceCount, IsSuccessful) {
+        super();
+        this.AttackerId = AttackerId;
+        this.AttackingFieldId = AttackingFieldId;
+        this.AttackingDiceCount = AttackingDiceCount;
+        this.DefenderId = DefenderId;
+        this.DefendingFieldId = DefendingFieldId;
+        this.DefendingDiceCount = DefendingDiceCount;
+        this.IsSuccessful = IsSuccessful;
+    }
+}
+
+export function Attack_$reflection() {
+    return record_type("Models.Attack", [], Attack, () => [["AttackerId", string_type], ["AttackingFieldId", string_type], ["AttackingDiceCount", array_type(int32_type)], ["DefenderId", string_type], ["DefendingFieldId", string_type], ["DefendingDiceCount", array_type(int32_type)], ["IsSuccessful", bool_type]]);
+}
+
+export class Move extends Record {
+    constructor(Count, AddedFieldId) {
+        super();
+        this.Count = (Count | 0);
+        this.AddedFieldId = AddedFieldId;
+    }
+}
+
+export function Move_$reflection() {
+    return record_type("Models.Move", [], Move, () => [["Count", int32_type], ["AddedFieldId", string_type]]);
+}
+
+export class GameRules extends Record {
+    constructor(StartDiceCountPerField, InitialDiceBuffer, MaxDiceMovedPerTurn, DiceGenerationMultiplier, DeadPlayerMultiplier) {
+        super();
+        this.StartDiceCountPerField = (StartDiceCountPerField | 0);
+        this.InitialDiceBuffer = (InitialDiceBuffer | 0);
+        this.MaxDiceMovedPerTurn = (MaxDiceMovedPerTurn | 0);
+        this.DiceGenerationMultiplier = DiceGenerationMultiplier;
+        this.DeadPlayerMultiplier = DeadPlayerMultiplier;
+    }
+}
+
+export function GameRules_$reflection() {
+    return record_type("Models.GameRules", [], GameRules, () => [["StartDiceCountPerField", int32_type], ["InitialDiceBuffer", int32_type], ["MaxDiceMovedPerTurn", int32_type], ["DiceGenerationMultiplier", float64_type], ["DeadPlayerMultiplier", float64_type]]);
+}
+
+export class BotType extends Union {
+    constructor(tag, fields) {
+        super();
+        this.tag = tag;
+        this.fields = fields;
+    }
+    cases() {
+        return ["CheezyBot", "StrategicBot", "NerdBot"];
+    }
+}
+
+export function BotType_$reflection() {
+    return union_type("Models.BotType", [], BotType, () => [[], [], []]);
+}
+
+export class AddBotCommand extends Record {
+    constructor(BotType) {
+        super();
+        this.BotType = BotType;
+    }
+}
+
+export function AddBotCommand_$reflection() {
+    return record_type("Models.AddBotCommand", [], AddBotCommand, () => [["BotType", BotType_$reflection()]]);
+}
+
+export class AddPlayerCommand extends Record {
+    constructor(PlayerName) {
+        super();
+        this.PlayerName = PlayerName;
+    }
+}
+
+export function AddPlayerCommand_$reflection() {
+    return record_type("Models.AddPlayerCommand", [], AddPlayerCommand, () => [["PlayerName", string_type]]);
+}
+
+export class MoveFieldCommand extends Record {
+    constructor(FromFieldId, ToFieldId) {
+        super();
+        this.FromFieldId = FromFieldId;
+        this.ToFieldId = ToFieldId;
+    }
+}
+
+export function MoveFieldCommand_$reflection() {
+    return record_type("Models.MoveFieldCommand", [], MoveFieldCommand, () => [["FromFieldId", string_type], ["ToFieldId", string_type]]);
+}
+
+export class ReadyWithRulesCommand extends Record {
+    constructor(GameRules) {
+        super();
+        this.GameRules = GameRules;
+    }
+}
+
+export function ReadyWithRulesCommand_$reflection() {
+    return record_type("Models.ReadyWithRulesCommand", [], ReadyWithRulesCommand, () => [["GameRules", GameRules_$reflection()]]);
+}
+
+export class Action extends Union {
+    constructor(tag, fields) {
+        super();
+        this.tag = tag;
+        this.fields = fields;
+    }
+    cases() {
+        return ["JoinGame", "AddBot", "AddPlayer", "RemovePlayer", "MoveField", "EndRound", "Ready", "ReadyWithRules"];
+    }
+}
+
+export function Action_$reflection() {
+    return union_type("Models.Action", [], Action, () => [[], [["Item", AddBotCommand_$reflection()]], [["Item", AddPlayerCommand_$reflection()]], [], [["Item", MoveFieldCommand_$reflection()]], [], [], [["Item", ReadyWithRulesCommand_$reflection()]]]);
 }
 

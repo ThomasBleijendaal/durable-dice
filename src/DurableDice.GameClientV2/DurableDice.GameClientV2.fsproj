@@ -8,6 +8,7 @@
     <Compile Include="HexMath.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Hexagon.fs" />
+    <Compile Include="Player.fs" />
     <Compile Include="Field.fs" />
     <Compile Include="GameState.fs" />
     <Compile Include="Animations.fs" />
@@ -16,6 +17,5 @@
   <ItemGroup>
     <PackageReference Include="Fable.Browser.Dom" Version="2.16.0" />
     <PackageReference Include="Fable.Core" Version="4.3.0" />
-    <PackageReference Include="Fable.SignalR" Version="0.11.5" />
   </ItemGroup>
 </Project>

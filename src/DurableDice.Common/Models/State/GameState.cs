@@ -43,7 +43,7 @@ public class GameState
     public IEnumerable<Field> PlayerRandomFields(string playerId)
         => Fields.Where(x => x.OwnerId == playerId).OrderBy(x => Guid.NewGuid());
 
-    public int PlayerFieldCount(Player player) 
+    public int PlayerFieldCount(Player player)
         => Fields.Count(x => x.OwnerId == player.Id);
 
     public bool PlayerIsDead(string playerId)

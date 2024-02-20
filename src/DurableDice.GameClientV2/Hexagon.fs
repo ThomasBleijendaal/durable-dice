@@ -4,7 +4,7 @@ open HexMath
 open Models
 
 type Hexagon = {
-    FieldId: int
+    FieldId: string
 
     Coordinate: Coordinate
     Position: Position
@@ -16,11 +16,9 @@ type Hexagon = {
 type HexagonGroup = Hexagon array
 
 type FieldHexagons = {
-    FieldId: int
+    FieldId: string
     Center: Coordinate
     CenterPosition: Position
-
-    Color: string
 
     Hexagons: HexagonGroup array }
 
@@ -29,5 +27,6 @@ module Hexagon =
     let position (hex: Hexagon) = hex.Position
     let outerEdges (hex: Hexagon) = hex.OuterEdges
     let isInside (pos: Position) (hex: Hexagon) =
+        // TODO: apply correct math instead of circle
         Position.distance pos hex.Position < HexMath.r
 

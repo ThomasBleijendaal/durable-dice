@@ -53,6 +53,8 @@ public class GameEntity : GameState, IGameEntity
             return;
         }
 
+        // TODO: authenticate first player
+
         Players.Add(new Player
         {
             Index = Players.Count,
@@ -72,12 +74,15 @@ public class GameEntity : GameState, IGameEntity
             return;
         }
 
-        Players.Add(new Player
+        if (!Players.Exists(x => x.Id == command.PlayerId))
         {
-            Index = Players.Count,
-            Id = command.PlayerId,
-            Name = command.PlayerName?.Substring(0, Math.Min(command.PlayerName.Length, 16)) ?? "Dummy"
-        });
+            Players.Add(new Player
+            {
+                Index = Players.Count,
+                Id = command.PlayerId,
+                Name = command.PlayerName?.Substring(0, Math.Min(command.PlayerName.Length, 16)) ?? "Dummy"
+            });
+        }
 
         await DistributeStateAsync();
     }
@@ -135,7 +140,7 @@ public class GameEntity : GameState, IGameEntity
     {
         if (Players.ElementAtOrDefault(0)?.Id == command.PlayerId)
         {
-            Rules = command.GameRules;
+            Rules = command.GameRules ?? Rules;
         }
 
         await ReadyAsync(command.PlayerId);
@@ -306,12 +311,13 @@ public class GameEntity : GameState, IGameEntity
         while (true);
     }
 
+    // TODO: this must increment an index so clients can handle the update
     private async Task DistributeStateAsync()
         => await _signalr.AddAsync(new SignalRMessage
         {
             GroupName = _gameId,
-            Arguments = new object[] { new { connectionId = Guid.NewGuid(), invocationId = Guid.NewGuid(), message = new object[] { this } } },
-            Target = "Send"
+            Arguments = new object[] { this },
+            Target = "Broadcast"
         });
 
     private void SelectNextActivePlayer(string playerId)

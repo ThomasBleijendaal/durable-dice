@@ -1,23 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fable</title>
-    <style>
-      body { margin: 0; padding: 0; background-color: black; }
-      canvas {  background-color: black; }
-    </style>
-  </head>
-  <body>
-    <canvas id="canvas" width="1200" height="800"></canvas>
-    <script type="module" src="/Theme.fs.js"></script>
-    <script type="module" src="/HexMath.fs.js"></script>
-    <script type="module" src="/Models.fs.js"></script>
-    <script type="module" src="/Hexagon.fs.js"></script>
-    <script type="module" src="/Field.fs.js"></script>
-    <script type="module" src="/GameState.fs.js"></script>
-    <script type="module" src="/Animations.fs.js"></script>
-    <script type="module" src="/Program.fs.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fable</title>
+  <style>
+    * {
+      box-sizing: content-box;
+      font: Verdana;
+    }
+
+
+    body {
+      margin: 20;
+      padding: 0;
+      background-color: #d0d0d0;
+      position: relative;
+    }
+
+    canvas {
+      background-color: #d0d0d0;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #buttons {
+      padding: 10px;
+      width: 400px;
+      height: 40px;
+      position: absolute;
+      left: 800px;
+      top: 0;
+    }
+
+    #form {
+      width: 1200px;
+      height: 1200px;
+      background: rgba(255, 255, 255, 0.8);
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 10px 30px;
+    }
+
+    #gameRules {
+      
+    }
+
+    #joinGame {
+      
+    }
+
+    #ready {
+      float: right;
+    }
+
+    #end {
+      float: right;
+    }
+
+    .hide {
+      display: none !important;
+    }
+
+    .show {
+      display: block !important;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas" width="1200" height="1200"></canvas>
+
+  <div id="form" class="hide">
+    <p id="joinGame" class="hide">
+      <input placeholder="Enter your name" id="name" maxlength="16" />
+      <button id="join">Join</button>
+    </p>
+
+    <div id="rules" class="hide">
+      <p><strong>Game rules</strong></p>
+
+      <p>Durable Dice is a turn-based strategy game. To win, you must capture all fields.</p>
+
+      <p>
+        When attacking a field, your dice must role more than the defending dice. If you win a battle,
+        all but one dice are moved to the captured field. You can attack any number of fields in
+        your turn, as long as the attacking field has 2 or more dice.
+      </p>
+
+      <p>
+        During any point in your turn, you can move a fixed amount of dice around. When moving, all dice
+        that are allowed to be moved are moved into the target field.
+      </p>
+
+      <p>
+        At the end of your turn, new dice are added randomly to your fields. The number of
+        new dice is equal to the biggest number of contiguous fields, so make sure you keep
+        your fields together and divide other players into smaller chunks.
+      </p>
+
+      <hr>
+
+      <p>Share url:<br /><br /><code id="shareurl">&nbsp;</code></p>
+    </div>
+
+    <div id="gameRules">
+      <hr>
+
+      <button id="addCheezyBot">Add cheezy bot</button>
+      <button id="addStrategicBot">Add strategic bot</button>
+      <button id="addNerdBot">Add nerd bot</button>
+
+      <hr>
+
+      <p>
+        These settings allow you to tweak the rules. Make only minor adjustments as these quickly
+        ramp up the insanity of this game.
+      </p>
+
+      <p>
+        <label>
+          Start dice per field (1-8)
+          <input id="startDiceCount" type="number" min="1" max="8" step="1" value="2">
+        </label>
+      </p>
+      <p>
+        <label>
+          Initial dice buffer (0-16)
+          <input id="startDiceBuffer" type="number" min="0" max="16" step="1" value="0">
+        </label>
+      </p>
+      <p>
+        <label>
+          Max dice moves per turn (0-16)
+          <input id="maxDiceMoves" type="number" min="1" max="8" step="1" value="0">
+        </label>
+      </p>
+      <p>
+        <label>
+          Dice generation multiplier (1.0 - 10.0)
+          <input id="diceGenerationMultiplier" type="number" min="1" max="10" step="0.01" value="1.0">
+        </label>
+      </p>
+      <p>
+        <label>
+          Dead player count dice generation multiplier (0.0 - 2.0)
+          <input id="deadPlayerMultiplier" type="number" min="1" max="8" step="0.01" value="1.0">
+        </label>
+      </p>
+    </div>
+  </div>
+
+  <div id="buttons">
+    <button id="ready" class="hide">Ready</button>
+    <button id="end" class="hide">End Round</button>
+  </div>
+
+
+  <script src="/lib/signalr.js"></script>
+  <script type="module" src="/Theme.fs.js"></script>
+  <script type="module" src="/HexMath.fs.js"></script>
+  <script type="module" src="/Models.fs.js"></script>
+  <script type="module" src="/Hexagon.fs.js"></script>
+  <script type="module" src="/Field.fs.js"></script>
+  <script type="module" src="/GameState.fs.js"></script>
+  <script type="module" src="/Animations.fs.js"></script>
+  <script type="module" src="/Program.fs.js"></script>
+  <script type="module">
+    import { updateGameState, registerCallback } from "/Program.fs.js"
+
+    const playerId = localStorage.getItem("player-id");
+    const gameId = localStorage.getItem("game-id");
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:7071", {
+        headers: {
+          "x-playerid": playerId,
+          "x-gameid": gameId
+        }
+      })
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    connection.on("Broadcast", (gameState) => {
+      updateGameState(gameState);
+    });
+
+    registerCallback(async (action) => {
+      await connection.invoke(action[0], action[1]);
+    });
+
+    document.getElementById("join").onclick = async function () {
+      await connection.invoke("AddPlayer", { PlayerName: document.getElementById("name").value });
+    }
+    document.getElementById("ready").onclick = async function () {
+      await connection.invoke("ReadyWithRules", {
+        GameRules: {
+          StartDiceCountPerField: parseInt(document.getElementById("startDiceCount").value),
+          InitialDiceBuffer: parseInt(document.getElementById("startDiceBuffer").value),
+          MaxDiceMovedPerTurn: parseInt(document.getElementById("maxDiceMoves").value),
+          DiceGenerationMultiplier: parseFloat(document.getElementById("diceGenerationMultiplier").value),
+          DeadPlayerMultiplier: parseFloat(document.getElementById("deadPlayerMultiplier").value)
+        }
+      });
+    }
+    document.getElementById("end").onclick = async function () {
+      await connection.invoke("EndRound", {});
+    }
+    document.getElementById("addCheezyBot").onclick = async function () {
+      await connection.invoke("AddBot", { BotType: "CheezyBot" });
+    }
+    document.getElementById("addStrategicBot").onclick = async function () {
+      await connection.invoke("AddBot", { BotType: "StrategicBot" });
+    }
+    document.getElementById("addNerdBot").onclick = async function () {
+      await connection.invoke("AddBot", { BotType: "NerdBot" });
+    }
+
+    async function start() {
+      try {
+        await connection.start();
+        console.log("SignalR Connected.");
+        await connection.invoke("JoinGame", {});
+        // 
+      } catch (err) {
+        console.log(err);
+        setTimeout(start, 5000);
+      }
+    };
+
+    connection.onclose(async () => {
+      await start();
+    });
+
+    // Start the connection.
+    start();
+  </script>
+</body>
+
 </html>

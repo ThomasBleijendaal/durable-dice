@@ -67,27 +67,53 @@ public static class FieldGeometry
             .FirstOrDefault()?.Count ?? 0;
     }
 
-    public static IEnumerable<Coordinate> GetNeighboringCoordinates(Coordinate center)
+    public static IEnumerable<Coordinate> GetNeighboringCoordinates(Coordinate c)
     {
         // TODO: this math does not work with V2
-        if (center.X % 2 == 1)
+
+        // V2
+
+        return (c.Y % 2) switch
         {
-            yield return new Coordinate(center.X, center.Y - 1);
-            yield return new Coordinate(center.X - 1, center.Y);
-            yield return new Coordinate(center.X - 1, center.Y + 1);
-            yield return new Coordinate(center.X, center.Y + 1);
-            yield return new Coordinate(center.X + 1, center.Y + 1);
-            yield return new Coordinate(center.X + 1, center.Y);
-        }
-        else
-        {
-            yield return new Coordinate(center.X, center.Y - 1);
-            yield return new Coordinate(center.X - 1, center.Y - 1);
-            yield return new Coordinate(center.X - 1, center.Y);
-            yield return new Coordinate(center.X, center.Y + 1);
-            yield return new Coordinate(center.X + 1, center.Y);
-            yield return new Coordinate(center.X + 1, center.Y - 1);
-        }
+            1 => new Coordinate[]
+            {
+                new(c.X - 1, c.Y),
+                new(c.X - 1, c.Y + 1),
+                new(c.X, c.Y + 1),
+                new(c.X + 1, c.Y),
+                new(c.X, c.Y - 1),
+                new(c.X - 1, c.Y - 1)
+            },
+            _ => new Coordinate[]
+            {
+                new(c.X, c.Y - 1),
+                new(c.X - 1, c.Y),
+                new(c.X, c.Y + 1),
+                new(c.X + 1, c.Y + 1),
+                new(c.X + 1, c.Y),
+                new(c.X + 1, c.Y - 1)
+            },
+        };
+
+        // V1
+        //if (center.X % 2 == 1)
+        //{
+        //    yield return new Coordinate(center.X, center.Y - 1);
+        //    yield return new Coordinate(center.X - 1, center.Y);
+        //    yield return new Coordinate(center.X - 1, center.Y + 1);
+        //    yield return new Coordinate(center.X, center.Y + 1);
+        //    yield return new Coordinate(center.X + 1, center.Y + 1);
+        //    yield return new Coordinate(center.X + 1, center.Y);
+        //}
+        //else
+        //{
+        //    yield return new Coordinate(center.X, center.Y - 1);
+        //    yield return new Coordinate(center.X - 1, center.Y - 1);
+        //    yield return new Coordinate(center.X - 1, center.Y);
+        //    yield return new Coordinate(center.X, center.Y + 1);
+        //    yield return new Coordinate(center.X + 1, center.Y);
+        //    yield return new Coordinate(center.X + 1, center.Y - 1);
+        //}
     }
 
     public static List<Coordinate> GetCircleAroundCoordinate(Coordinate center, int radius)

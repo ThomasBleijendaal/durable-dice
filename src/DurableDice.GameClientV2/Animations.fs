@@ -6,27 +6,43 @@ open Fable.Core.JsInterop
 open Models
 open Hexagon
 open GameState
+open Player
+open Theme
 
 type IHexagonAnimation =
     abstract member Applies: Hexagon -> bool
     abstract member IsDone: bool
-    abstract member AnimateHexagon: CanvasRenderingContext2D * FieldHexagons * Hexagon -> unit
-    abstract member AnimateOuterEdge: CanvasRenderingContext2D * FieldHexagons * Hexagon -> unit
+    abstract member AnimateHexagon: CanvasRenderingContext2D * string * FieldHexagons * Hexagon -> unit
+    abstract member AnimateOuterEdge: CanvasRenderingContext2D * string * FieldHexagons * Hexagon -> unit
 
 type DefaultAnimation () =
     interface IHexagonAnimation with
         member this.Applies (_) = true
         member this.IsDone = false
-        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+        member this.AnimateHexagon (ctx, color, hexagons, hexagon) =
             let edges = hexagon.AllEdges
 
             let firstEdge = edges[0] |> fst
 
             ctx.beginPath ()
-            ctx.fillStyle <- !^hexagons.Color
-            ctx.lineWidth <- 0.4
-            ctx.strokeStyle <- !^hexagons.Color
-            ctx.globalAlpha <- 0.75
+
+            match GameState.hoverField with
+            | Some field when field.Id = hexagon.FieldId -> 
+                let gradient = ctx.createRadialGradient(
+                    float hexagons.CenterPosition.X, 
+                    float hexagons.CenterPosition.Y, 
+                    0.0,
+                    float hexagons.CenterPosition.X, 
+                    float hexagons.CenterPosition.Y,
+                    300.0)
+                gradient.addColorStop(1.0, "white")
+                gradient.addColorStop(0, color)
+                ctx.fillStyle <- !^gradient
+            | _ -> ctx.fillStyle <- !^color
+            
+            ctx.lineWidth <- 1
+            ctx.strokeStyle <- !^color
+            ctx.globalAlpha <- 1
             ctx.shadowBlur <- 0
             ctx.shadowColor <- null
 
@@ -39,12 +55,12 @@ type DefaultAnimation () =
             ctx.stroke ()
             ctx.fill ()
 
-        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+        member this.AnimateOuterEdge (ctx, _, _, hexagon) =
             hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
                 ctx.beginPath ()
                 ctx.globalAlpha <- 1
                 ctx.lineWidth <- 1
-                ctx.strokeStyle <- !^hexagons.Color
+                ctx.strokeStyle <- !^"black"
                 ctx.shadowBlur <- 0
                 ctx.shadowColor <- null
                 ctx.moveTo (float p1.X, float p1.Y)
@@ -54,18 +70,18 @@ type DefaultAnimation () =
 
 type SelectedAnimation () =
     interface IHexagonAnimation with
-        member this.Applies (hexagon) = match selectedField with | Some field -> field.Id = hexagon.FieldId | None -> false
+        member this.Applies (hexagon) = match GameState.selectedField with | Some field -> field.Id = hexagon.FieldId | None -> false
         member this.IsDone = false
-        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+        member this.AnimateHexagon (ctx, color, _, hexagon) =
             let edges = hexagon.AllEdges
 
             let firstEdge = edges[0] |> fst
 
             ctx.beginPath ()
-            ctx.fillStyle <- !^hexagons.Color
+            ctx.fillStyle <- !^color
             ctx.lineWidth <- 1
-            ctx.strokeStyle <- !^hexagons.Color
-            ctx.globalAlpha <- 0.85
+            ctx.strokeStyle <- !^color
+            ctx.globalAlpha <- 1
             ctx.shadowBlur <- 0
             ctx.shadowColor <- null
 
@@ -78,7 +94,7 @@ type SelectedAnimation () =
             ctx.stroke ()
             ctx.fill ()
 
-        member this.AnimateOuterEdge (ctx, _, hexagon) =
+        member this.AnimateOuterEdge (ctx, _, _, hexagon) =
             hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
                 ctx.beginPath ()
                 ctx.globalAlpha <- 1
@@ -91,16 +107,17 @@ type SelectedAnimation () =
                 ctx.stroke ()
                 ctx.closePath ())
 
+// TODO: animate from to
 type CapturedAnimation (fieldId) = 
     let mutable progress = 0.0;
-    let max = 1000.0
+    let max = 100.0
 
     interface IHexagonAnimation with
         member this.Applies (hexagon) = hexagon.FieldId = fieldId
         member this.IsDone = 
             progress <- progress + 1.0
             progress > max
-        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+        member this.AnimateHexagon (ctx, color, hexagons, hexagon) =
             let edges = hexagon.AllEdges
 
             let firstEdge = edges[0] |> fst
@@ -109,17 +126,17 @@ type CapturedAnimation (fieldId) =
                 float hexagons.CenterPosition.X, 
                 float hexagons.CenterPosition.Y, 
                 0.0,
-                float hexagon.Position.X, 
-                float hexagon.Position.Y,
-                500.0)
-            gradient.addColorStop(1.0 - (progress / max), hexagons.Color)
+                float hexagons.CenterPosition.X, 
+                float hexagons.CenterPosition.Y,
+                100.0)
+            gradient.addColorStop(1.0 - (progress / max), color)
             gradient.addColorStop(0, "lime")
 
             ctx.beginPath ()
             ctx.fillStyle <- !^gradient
             ctx.lineWidth <- 0.2
             ctx.strokeStyle <- !^gradient
-            ctx.globalAlpha <- 0.75
+            ctx.globalAlpha <- 1
             ctx.shadowBlur <- 0
             ctx.shadowColor <- null
 
@@ -132,7 +149,7 @@ type CapturedAnimation (fieldId) =
             ctx.stroke ()
             ctx.fill ()
 
-        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+        member this.AnimateOuterEdge (ctx, color, hexagons, hexagon) =
             hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
                 ctx.beginPath ()
                 ctx.globalAlpha <- 1
@@ -145,16 +162,17 @@ type CapturedAnimation (fieldId) =
                 ctx.stroke ()
                 ctx.closePath ())
 
+// TODO: animate failed from to
 type FailedCaptureAnimation (fieldId) = 
     let mutable progress = 0.0;
-    let max = 1000.0
+    let max = 100.0
 
     interface IHexagonAnimation with
         member this.Applies (hexagon) = hexagon.FieldId = fieldId
         member this.IsDone = 
             progress <- progress + 1.0
             progress > max
-        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+        member this.AnimateHexagon (ctx, color, hexagons, hexagon) =
             let edges = hexagon.AllEdges
 
             let firstEdge = edges[0] |> fst
@@ -163,17 +181,17 @@ type FailedCaptureAnimation (fieldId) =
                 float hexagons.CenterPosition.X, 
                 float hexagons.CenterPosition.Y, 
                 0.0,
-                float hexagon.Position.X, 
-                float hexagon.Position.Y,
-                500.0)
-            gradient.addColorStop(0, hexagons.Color)
+                float hexagons.CenterPosition.X, 
+                float hexagons.CenterPosition.Y,
+                100.0)
+            gradient.addColorStop(0, color)
             gradient.addColorStop((progress / max), "red")
 
             ctx.beginPath ()
             ctx.fillStyle <- !^gradient
             ctx.lineWidth <- 0.4
             ctx.strokeStyle <- !^gradient
-            ctx.globalAlpha <- 0.75
+            ctx.globalAlpha <- 1
             ctx.shadowBlur <- 0
             ctx.shadowColor <- null
 
@@ -186,7 +204,7 @@ type FailedCaptureAnimation (fieldId) =
             ctx.stroke ()
             ctx.fill ()
 
-        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+        member this.AnimateOuterEdge (ctx, color, hexagons, hexagon) =
             hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
                 ctx.beginPath ()
                 ctx.globalAlpha <- 1
@@ -201,14 +219,14 @@ type FailedCaptureAnimation (fieldId) =
 
 type GainedDiceAnimation (fieldId, diceAdded) = 
     let mutable progress = 0.0;
-    let max = 1000.0
+    let max = 100.0
 
     interface IHexagonAnimation with
         member this.Applies (hexagon) = hexagon.FieldId = fieldId
         member this.IsDone = 
             progress <- progress + 1.0
             progress > max
-        member this.AnimateHexagon (ctx, hexagons, hexagon) =
+        member this.AnimateHexagon (ctx, color, hexagons, hexagon) =
             let edges = hexagon.AllEdges
 
             let firstEdge = edges[0] |> fst
@@ -217,17 +235,17 @@ type GainedDiceAnimation (fieldId, diceAdded) =
                 float hexagons.CenterPosition.X, 
                 float hexagons.CenterPosition.Y, 
                 0.0,
-                float hexagon.Position.X, 
-                float hexagon.Position.Y,
-                float(9 - diceAdded) * 100.0)
-            gradient.addColorStop(0, hexagons.Color)
+                float hexagons.CenterPosition.X, 
+                float hexagons.CenterPosition.Y,
+                float(9 - diceAdded) * 10.0)
+            gradient.addColorStop(0, color)
             gradient.addColorStop((progress / max), "gold")
 
             ctx.beginPath ()
             ctx.fillStyle <- !^gradient
             ctx.lineWidth <- 0.4
             ctx.strokeStyle <- !^gradient
-            ctx.globalAlpha <- 0.75
+            ctx.globalAlpha <- 1
             ctx.shadowBlur <- 0
             ctx.shadowColor <- null
 
@@ -240,7 +258,7 @@ type GainedDiceAnimation (fieldId, diceAdded) =
             ctx.stroke ()
             ctx.fill ()
 
-        member this.AnimateOuterEdge (ctx, hexagons, hexagon) =
+        member this.AnimateOuterEdge (ctx, color, hexagons, hexagon) =
             hexagon.OuterEdges |> Array.iter (fun (p1, p2) -> 
                 ctx.beginPath ()
                 ctx.globalAlpha <- 1
@@ -259,14 +277,14 @@ let selectedAnimation : IHexagonAnimation = SelectedAnimation()
 let mutable runningAnimations: IHexagonAnimation array = [||]
 
 module Animation = 
-    let apply (method) (ctx, color, hexagon) = 
+    let apply (method) (ctx, color, hexagons, hexagon) : unit = 
         
         let runningAnimation = runningAnimations |> Array.tryFind (fun animation -> animation.Applies(hexagon))
 
         match runningAnimation with
-        | Some animation -> method animation (ctx, color, hexagon)
-        | None when selectedAnimation.Applies (hexagon) -> method selectedAnimation (ctx, color, hexagon)
-        | None -> method defaultAnimation (ctx, color, hexagon)
+        | Some animation -> method animation (ctx, color, hexagons, hexagon)
+        | None when selectedAnimation.Applies (hexagon) -> method selectedAnimation (ctx, color, hexagons, hexagon)
+        | None -> method defaultAnimation (ctx, color, hexagons, hexagon)
         
         if runningAnimation.IsSome then
             runningAnimations <- runningAnimations |> Array.filter (fun animation -> animation.IsDone = false)

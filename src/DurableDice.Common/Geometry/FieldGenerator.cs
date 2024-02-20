@@ -5,8 +5,8 @@ namespace DurableDice.Common.Geometry;
 
 public static class FieldGenerator
 {
-    private const int HorizontalCoordinates = 30;
-    private const int VerticalCoordinates = 20;
+    private const int HorizontalCoordinates = 60;
+    private const int VerticalCoordinates = 60;
 
     public static List<Field> GenerateFields(IReadOnlyList<Player> players)
     {
@@ -15,12 +15,13 @@ public static class FieldGenerator
             return new List<Field>();
         }
 
-        var fieldsPerPlayer = 32 / players.Count;
+        var fieldsPerPlayer = 48 / players.Count;
 
         var coordinates = Enumerable.Range(0, VerticalCoordinates)
             .SelectMany(y => Enumerable.Range(0, HorizontalCoordinates).Select(x => new Coordinate(x, y)))
             .OrderBy(x => Guid.NewGuid())
-            .Skip((VerticalCoordinates / 3) * (HorizontalCoordinates / 3))
+            // TODO: restore
+            //.Skip(VerticalCoordinates / 3 * (HorizontalCoordinates / 3))
             .ToList();
 
         var index = 0;
@@ -47,9 +48,9 @@ public static class FieldGenerator
             Coordinate center;
             if (first)
             {
-                center = coordinates.First(x => 
-                    x.X > (HorizontalCoordinates / 3) && x.X < (2 * HorizontalCoordinates / 3) &&
-                    x.Y > (VerticalCoordinates / 3) && x.Y < (2 * VerticalCoordinates / 3));
+                center = coordinates.First(x =>
+                    x.X > (2 * HorizontalCoordinates / 4) && x.X < (3 * HorizontalCoordinates / 4) &&
+                    x.Y > (2 * VerticalCoordinates / 4) && x.Y < (3 * VerticalCoordinates / 4));
                 first = false;
             }
             else
@@ -60,11 +61,12 @@ public static class FieldGenerator
                     .First();
             }
 
-            var size = RandomNumberGenerator.GetInt32(5) + 1;
+            var size = RandomNumberGenerator.GetInt32(6) + 4;
             var block = FieldGeometry.GetShapeAroundCoordinate(center, size, coordinates);
             var allowedBlocks = block.Intersect(coordinates).ToList();
 
             field.Coordinates = allowedBlocks;
+            // TODO: find true center of field instead of the center thats a neighbor
             field.Center = center;
 
             allowedBlocks.ForEach(claimedBlock => coordinates.Remove(claimedBlock));

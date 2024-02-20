@@ -1,20 +1,20 @@
 module Field
 
-open Theme
 open Models
 open Hexagon
+open Player
 
 type Field =
     { 
         Index: int
 
-        Id: int
-        OwnerId: int
+        Id: string
+        OwnerId: string
 
         DiceCount: int
         DiceAdded: int
 
-        Coordinates: Coordinate array
+        Coordinates: Coordinates
         Center: Coordinate
 
         Neighbors: int array }
@@ -22,7 +22,7 @@ type Field =
 type Fields = Field array
 
 module Field =
-    let groupHexagons (field: Field) : FieldHexagons =
+    let groupHexagons (players: Player array) (field: Field) : FieldHexagons =
         
         let rec loopCoordinates (cs: Coordinates) = 
             if cs.Length = 0 then
@@ -36,13 +36,13 @@ module Field =
 
                             let externalEdges =
                                 neighborsOfCoordinate
-                                |> Array.filter (fun (_, c) -> cs |> Array.contains c = false)
+                                |> Array.filter (fun (_, c) -> cs |> Array.tryFind (Coordinate.isSame c) = None)
 
                             let unprocessedNeighborsOfCoordinate =
                                 neighborsOfCoordinate
                                 |> Array.filter (fun (_, c) ->
-                                    processedCoordinates |> Array.contains c = false
-                                    && cs |> Array.contains c = true)
+                                    processedCoordinates |> Array.tryFind (Coordinate.isSame c) = None
+                                    && cs |> Array.tryFind (Coordinate.isSame c) <> None)
                                 |> Array.map snd
 
                             let position = coordinate |> Coordinate.toPosition
@@ -92,8 +92,6 @@ module Field =
             FieldId = field.Id
             Center = field.Center
             CenterPosition = field.Center |> Coordinate.toPosition
-
-            Color = Theme.color(Some field.OwnerId)
 
             Hexagons = hexagons
         }

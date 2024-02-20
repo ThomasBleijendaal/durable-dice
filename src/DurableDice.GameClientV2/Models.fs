@@ -24,9 +24,12 @@ type EdgeType =
     | RightTop
 
 module Coordinate =
+    let isSame (c1: Coordinate) (c2: Coordinate) =
+        c1.X = c2.X && c1.Y = c2.Y
+
     let toPosition (c: Coordinate) =
-        { X = (float c.X) * HexMath.r2 - ((float (c.Y % 2) * HexMath.r))
-          Y = (float c.Y) * (HexMath.r2 - (HexMath.r - HexMath.rx)) }
+        { X = HexMath.paddingLeft + ((float c.X) * HexMath.r2 - ((float (c.Y % 2) * HexMath.r)))
+          Y = HexMath.paddingTop + (float c.Y) * (HexMath.r2 - (HexMath.r - HexMath.rx)) }
 
     let neighbors (c: Coordinate) : (EdgeType * Coordinate) array =
         match c.Y % 2 with
@@ -69,3 +72,49 @@ module Position =
          allEdges |> Array.map (fun edge -> EdgeType.calculateEdge edge pos)
 
 type Neighbors = (Coordinate * (EdgeType array)) array
+
+type Attack =
+    { AttackerId: string
+      AttackingFieldId: string
+      AttackingDiceCount: int array
+      DefenderId: string
+      DefendingFieldId: string
+      DefendingDiceCount: int array
+      IsSuccessful: bool }
+
+type Move = { Count: int; AddedFieldId: string }
+
+
+
+type GameRules =
+    { StartDiceCountPerField: int
+      InitialDiceBuffer: int
+      MaxDiceMovedPerTurn: int
+      DiceGenerationMultiplier: float
+      DeadPlayerMultiplier: float }
+
+[<RequireQualifiedAccess>]
+type BotType =
+    | CheezyBot
+    | StrategicBot
+    | NerdBot
+
+type AddBotCommand = { BotType: BotType }
+type AddPlayerCommand = { PlayerName: string }
+
+type MoveFieldCommand =
+    { FromFieldId: string
+      ToFieldId: string }
+
+type ReadyWithRulesCommand = { GameRules: GameRules }
+
+[<RequireQualifiedAccess>]
+type Action =
+    | JoinGame
+    | AddBot of AddBotCommand
+    | AddPlayer of AddPlayerCommand
+    | RemovePlayer
+    | MoveField of MoveFieldCommand
+    | EndRound
+    | Ready
+    | ReadyWithRules of ReadyWithRulesCommand
