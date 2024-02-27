@@ -34,12 +34,12 @@ module Coordinate =
     let neighbors (c: Coordinate) : (EdgeType * Coordinate) array =
         match c.Y % 2 with
         | 1 ->
-            [| (Left, { X = c.X - 1; Y = c.Y })
+            [| (LeftTop, { X = c.X - 1; Y = c.Y - 1 })
+               (Left, { X = c.X - 1; Y = c.Y })
                (LeftBottom, { X = c.X - 1; Y = c.Y + 1 })
                (RightBottom, { X = c.X; Y = c.Y + 1 })
                (Right, { X = c.X + 1; Y = c.Y })
-               (RightTop, { X = c.X; Y = c.Y - 1 })
-               (LeftTop, { X = c.X - 1; Y = c.Y - 1 }) |]
+               (RightTop, { X = c.X; Y = c.Y - 1 }) |]
         | _ ->
             [| (LeftTop, { X = c.X; Y = c.Y - 1 })
                (Left, { X = c.X - 1; Y = c.Y })

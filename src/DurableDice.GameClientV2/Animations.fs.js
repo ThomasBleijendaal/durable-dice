@@ -32,7 +32,7 @@ export class DefaultAnimation {
         }
         switch (matchResult) {
             case 0: {
-                const gradient = ctx.createRadialGradient(hexagons.CenterPosition.X, hexagons.CenterPosition.Y, 0, hexagons.CenterPosition.X, hexagons.CenterPosition.Y, 300);
+                const gradient = ctx.createRadialGradient(hexagons.CenterPosition.X, hexagons.CenterPosition.Y, 0, hexagons.CenterPosition.X, hexagons.CenterPosition.Y, 200);
                 gradient.addColorStop(1, "white");
                 gradient.addColorStop(0, color);
                 ctx.fillStyle = gradient;

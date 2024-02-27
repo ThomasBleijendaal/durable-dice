@@ -48,12 +48,10 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task AddBotAsync(AddBotCommand command)
     {
-        if (Players.Count == 8)
+        if (Players.Count == 8 || Players.FirstOrDefault()?.Id != command.PlayerId)
         {
             return;
         }
-
-        // TODO: authenticate first player
 
         Players.Add(new Player
         {
@@ -89,8 +87,8 @@ public class GameEntity : GameState, IGameEntity
 
     public async Task MoveFieldAsync(MoveCommand command)
     {
-        var fromField = Fields.FirstOrDefault(x => x.Id == command.FromFieldId);
-        var toField = Fields.FirstOrDefault(x => x.Id == command.ToFieldId);
+        var fromField = Fields.Find(x => x.Id == command.FromFieldId);
+        var toField = Fields.Find(x => x.Id == command.ToFieldId);
 
         if (fromField == null ||
             toField == null ||
@@ -150,7 +148,7 @@ public class GameEntity : GameState, IGameEntity
     {
         Players.First(x => x.Id == playerId).IsReady = true;
 
-        if (Players.Count > 1 && Players.All(x => x.IsReady))
+        if (Players.Count > 1 && Players.TrueForAll(x => x.IsReady))
         {
             Rules.EnsureValidRules();
 
@@ -256,7 +254,7 @@ public class GameEntity : GameState, IGameEntity
 
         var gameEnded = false;
 
-        if (!Fields.All(x => x.OwnerId == ActivePlayerId))
+        if (!Fields.TrueForAll(x => x.OwnerId == ActivePlayerId))
         {
             SelectNextActivePlayer(ActivePlayerId);
         }
@@ -296,7 +294,7 @@ public class GameEntity : GameState, IGameEntity
 
             if (!allBots)
             {
-                await Task.Delay(200);
+                await Task.Delay(400);
             }
 
             var bot = BotHelper.BuildBot(this);
@@ -311,14 +309,17 @@ public class GameEntity : GameState, IGameEntity
         while (true);
     }
 
-    // TODO: this must increment an index so clients can handle the update
     private async Task DistributeStateAsync()
-        => await _signalr.AddAsync(new SignalRMessage
+    {
+        GameActionCount++;
+
+        await _signalr.AddAsync(new SignalRMessage
         {
             GroupName = _gameId,
             Arguments = new object[] { this },
             Target = "Broadcast"
         });
+    }
 
     private void SelectNextActivePlayer(string playerId)
     {

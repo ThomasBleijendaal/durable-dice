@@ -1,20 +1,22 @@
 import { Union, Record } from "./fable_modules/fable-library.4.11.0/Types.js";
-import { union_type, record_type, int32_type, array_type, option_type, string_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
+import { union_type, record_type, int64_type, int32_type, array_type, option_type, string_type } from "./fable_modules/fable-library.4.11.0/Reflection.js";
 import { PlayerModule_isPlayer, PlayerModule_color, Player_$reflection } from "./Player.fs.js";
 import { Field_$reflection } from "./Field.fs.js";
 import { Position, CoordinateModule_toPosition, GameRules, GameRules_$reflection, Move_$reflection, Attack_$reflection } from "./Models.fs.js";
 import { curry2, defaultOf, createAtom } from "./fable_modules/fable-library.4.11.0/Util.js";
+import { fromInt32, toInt64 } from "./fable_modules/fable-library.4.11.0/BigInt.js";
 import { HexMath_width } from "./HexMath.fs.js";
-import { iterateIndexed, find } from "./fable_modules/fable-library.4.11.0/Array.js";
+import { iterateIndexed, sum, find } from "./fable_modules/fable-library.4.11.0/Array.js";
 
 export class GameState extends Record {
-    constructor(NextGameId, Players, Fields, ActivePlayerId, GameRound, PreviousAttack, PreviousMove, Rules) {
+    constructor(NextGameId, Players, Fields, ActivePlayerId, GameRound, GameActionCount, PreviousAttack, PreviousMove, Rules) {
         super();
         this.NextGameId = NextGameId;
         this.Players = Players;
         this.Fields = Fields;
         this.ActivePlayerId = ActivePlayerId;
         this.GameRound = (GameRound | 0);
+        this.GameActionCount = GameActionCount;
         this.PreviousAttack = PreviousAttack;
         this.PreviousMove = PreviousMove;
         this.Rules = Rules;
@@ -22,7 +24,7 @@ export class GameState extends Record {
 }
 
 export function GameState_$reflection() {
-    return record_type("GameState.GameState", [], GameState, () => [["NextGameId", option_type(string_type)], ["Players", array_type(Player_$reflection())], ["Fields", array_type(Field_$reflection())], ["ActivePlayerId", option_type(string_type)], ["GameRound", int32_type], ["PreviousAttack", option_type(Attack_$reflection())], ["PreviousMove", option_type(Move_$reflection())], ["Rules", GameRules_$reflection()]]);
+    return record_type("GameState.GameState", [], GameState, () => [["NextGameId", option_type(string_type)], ["Players", array_type(Player_$reflection())], ["Fields", array_type(Field_$reflection())], ["ActivePlayerId", option_type(string_type)], ["GameRound", int32_type], ["GameActionCount", int64_type], ["PreviousAttack", option_type(Attack_$reflection())], ["PreviousMove", option_type(Move_$reflection())], ["Rules", GameRules_$reflection()]]);
 }
 
 export class Response extends Union {
@@ -74,13 +76,15 @@ export let GameStateModule_currentUIState = createAtom(new UIState(0, []));
 
 export let GameStateModule_currentRound = createAtom(0);
 
+export let GameStateModule_currentActionCount = createAtom(-2n);
+
 export let GameStateModule_selectedField = createAtom(void 0);
 
 export let GameStateModule_hoverField = createAtom(void 0);
 
 export let GameStateModule_currentRoundState = createAtom(new RoundState(0, []));
 
-export let GameStateModule_currentState = createAtom(new GameState(void 0, [], [], void 0, 0, void 0, void 0, new GameRules(0, 0, 0, 0, 0)));
+export let GameStateModule_currentState = createAtom(new GameState(void 0, [], [], void 0, 0, toInt64(fromInt32(-1)), void 0, void 0, new GameRules(0, 0, 0, 0, 0)));
 
 export function GameStateModule_resetRound() {
     GameStateModule_selectedField(void 0);
@@ -174,13 +178,14 @@ export function GameStateModule_drawDice(ctx, state) {
         ctx.fillStyle = "white";
         ctx.font = "12px Verdana";
         ctx.textAlign = "center";
-        ctx.fillText(`${field.DiceCount} (${field.Index})`, position.X, position.Y + 4, 30);
+        ctx.fillText(`${field.DiceCount}`, position.X, position.Y + 4, 30);
     }
     return (value) => {
     };
 }
 
 export function GameStateModule_drawTurn(ctx, state) {
+    let i, i_1, i_2, i_3, i_4, i_5, i_6;
     const matchValue = state.PreviousAttack;
     const matchValue_1 = state.PreviousMove;
     let matchResult, attack, move;
@@ -206,23 +211,69 @@ export function GameStateModule_drawTurn(ctx, state) {
             const defendingPlayer = find((player_1) => PlayerModule_isPlayer(attack.DefenderId, player_1), state.Players);
             const attackingColor = PlayerModule_color(attackingPlayer);
             const defendingColor = PlayerModule_color(defendingPlayer);
-            const dicePositions = [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [2, 1], [2, 1], [3, 1]];
+            const diceDifference = (sum(attack.AttackingDiceCount, {
+                GetZero: () => 0,
+                Add: (x, y) => (x + y),
+            }) - sum(attack.DefendingDiceCount, {
+                GetZero: () => 0,
+                Add: (x_1, y_1) => (x_1 + y_1),
+            })) | 0;
+            let attackComment;
+            if ((i = (diceDifference | 0), i < -15)) {
+                const i_7 = diceDifference | 0;
+                attackComment = "got owned by";
+            }
+            else if ((i_1 = (diceDifference | 0), i_1 < -10)) {
+                const i_8 = diceDifference | 0;
+                attackComment = "never stood a change against";
+            }
+            else if ((i_2 = (diceDifference | 0), i_2 < -5)) {
+                const i_9 = diceDifference | 0;
+                attackComment = "underestimated";
+            }
+            else if ((i_3 = (diceDifference | 0), i_3 < 0)) {
+                const i_10 = diceDifference | 0;
+                attackComment = "came short against";
+            }
+            else if (diceDifference === 0) {
+                attackComment = "did not have enough for";
+            }
+            else if ((i_4 = (diceDifference | 0), i_4 < 5)) {
+                const i_11 = diceDifference | 0;
+                attackComment = "barely won of";
+            }
+            else if ((i_5 = (diceDifference | 0), i_5 < 10)) {
+                const i_12 = diceDifference | 0;
+                attackComment = "bullied";
+            }
+            else if ((i_6 = (diceDifference | 0), i_6 < 15)) {
+                const i_13 = diceDifference | 0;
+                attackComment = "destroyed";
+            }
+            else {
+                attackComment = "obliterated";
+            }
+            ctx.fillStyle = "black";
+            ctx.font = "12px Verdana";
+            ctx.textAlign = "center";
+            ctx.fillText(attackComment, 600, 1020, 400);
+            const dicePositions = [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1]];
             const pipPositions = [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 1, 0, 0, 0, 1], [1, 0, 1, 0, 0, 0, 1, 0, 1], [1, 0, 1, 0, 1, 0, 1, 0, 1], [1, 0, 1, 1, 0, 1, 1, 0, 1]];
-            const attackPosition = new Position(400, 1000);
-            const defendPosition = new Position(600, 1000);
+            const attackPosition = new Position(480, 1000);
+            const defendPosition = new Position(720, 1000);
             const dieSize = 30;
             const drawDie = (color, pos) => {
                 ctx.beginPath();
                 ctx.fillStyle = color;
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 2;
-                const x = pos.X;
-                const y = pos.Y;
-                ctx.moveTo(x, y);
-                ctx.lineTo(x, y);
-                ctx.lineTo(x + dieSize, y);
-                ctx.lineTo(x + dieSize, y + dieSize);
-                ctx.lineTo(x, y + dieSize);
+                const x_2 = pos.X;
+                const y_2 = pos.Y;
+                ctx.moveTo(x_2, y_2);
+                ctx.lineTo(x_2, y_2);
+                ctx.lineTo(x_2 + dieSize, y_2);
+                ctx.lineTo(x_2 + dieSize, y_2 + dieSize);
+                ctx.lineTo(x_2, y_2 + dieSize);
                 ctx.closePath();
                 ctx.stroke();
                 ctx.fill();
@@ -234,10 +285,10 @@ export function GameStateModule_drawTurn(ctx, state) {
                 ctx.fillStyle = "black";
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 2;
-                const x_1 = pos_1.X + delta.X;
-                const y_1 = pos_1.Y + delta.Y;
-                ctx.moveTo(x_1, y_1);
-                ctx.arc(x_1, y_1, 2, 0, 3.141592653589793 * 2);
+                const x_3 = pos_1.X + delta.X;
+                const y_3 = pos_1.Y + delta.Y;
+                ctx.moveTo(x_3, y_3);
+                ctx.arc(x_3, y_3, 2, 0, 3.141592653589793 * 2);
                 ctx.closePath();
                 ctx.stroke();
                 ctx.fill();
@@ -250,32 +301,32 @@ export function GameStateModule_drawTurn(ctx, state) {
             const drawBlPip = curry2(drawPip)(new Position(5, 25));
             const drawBrPip = curry2(drawPip)(new Position(25, 25));
             const tl = (tupledArg) => {
-                const x_2 = tupledArg[0];
-                return x_2;
-            };
-            const tr = (tupledArg_1) => {
-                const x_3 = tupledArg_1[2];
-                return x_3;
-            };
-            const l = (tupledArg_2) => {
-                const x_4 = tupledArg_2[3];
+                const x_4 = tupledArg[0];
                 return x_4;
             };
-            const c = (tupledArg_3) => {
-                const x_5 = tupledArg_3[4];
+            const tr = (tupledArg_1) => {
+                const x_5 = tupledArg_1[2];
                 return x_5;
             };
-            const r = (tupledArg_4) => {
-                const x_6 = tupledArg_4[5];
+            const l = (tupledArg_2) => {
+                const x_6 = tupledArg_2[3];
                 return x_6;
             };
-            const bl = (tupledArg_5) => {
-                const x_7 = tupledArg_5[6];
+            const c = (tupledArg_3) => {
+                const x_7 = tupledArg_3[4];
                 return x_7;
             };
-            const br = (tupledArg_6) => {
-                const x_8 = tupledArg_6[8];
+            const r = (tupledArg_4) => {
+                const x_8 = tupledArg_4[5];
                 return x_8;
+            };
+            const bl = (tupledArg_5) => {
+                const x_9 = tupledArg_5[6];
+                return x_9;
+            };
+            const br = (tupledArg_6) => {
+                const x_10 = tupledArg_6[8];
+                return x_10;
             };
             const drawPips = (pos_2, pips) => {
                 if (tl(pips) === 1) {
@@ -302,7 +353,7 @@ export function GameStateModule_drawTurn(ctx, state) {
             };
             iterateIndexed((index, count) => {
                 const position = dicePositions[index];
-                const pos_3 = new Position(attackPosition.X - (position[0] * 40), attackPosition.Y - (position[1] * 40));
+                const pos_3 = new Position(attackPosition.X - (position[0] * 40), attackPosition.Y + (position[1] * 40));
                 drawAttackDie(pos_3);
                 drawPips(pos_3, pipPositions[count]);
             }, attack.AttackingDiceCount);

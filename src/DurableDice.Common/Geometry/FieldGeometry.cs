@@ -77,12 +77,12 @@ public static class FieldGeometry
         {
             1 => new Coordinate[]
             {
+                new(c.X - 1, c.Y - 1),
                 new(c.X - 1, c.Y),
                 new(c.X - 1, c.Y + 1),
                 new(c.X, c.Y + 1),
                 new(c.X + 1, c.Y),
-                new(c.X, c.Y - 1),
-                new(c.X - 1, c.Y - 1)
+                new(c.X, c.Y - 1)
             },
             _ => new Coordinate[]
             {
@@ -116,32 +116,32 @@ public static class FieldGeometry
         //}
     }
 
-    public static List<Coordinate> GetCircleAroundCoordinate(Coordinate center, int radius)
+    public static List<Coordinate> GetCircleAroundCoordinate(Coordinate origin, int radius)
     {
         var coordinates = new List<Coordinate>
         {
-            center
+            origin
         };
 
         if (radius > 0)
         {
-            var neighbors = GetNeighboringCoordinates(center);
+            var neighbors = GetNeighboringCoordinates(origin);
             coordinates.AddRange(neighbors.SelectMany(neighbor => GetCircleAroundCoordinate(neighbor, radius - 1)));
         }
 
         return coordinates.Distinct().ToList();
     }
 
-    public static List<Coordinate> GetShapeAroundCoordinate(Coordinate center, int size, IReadOnlyList<Coordinate> allowedCoordinates)
+    public static List<Coordinate> GetShapeAroundCoordinate(Coordinate origin, int size, IReadOnlyList<Coordinate> allowedCoordinates)
     {
         var coordinates = new List<Coordinate>
         {
-            center
+            origin
         };
 
         if (size > 0)
         {
-            var neighbors = GetNeighboringCoordinates(center)
+            var neighbors = GetNeighboringCoordinates(origin)
                 .Where(allowedCoordinates.Contains)
                 .OrderBy(x => Guid.NewGuid())
                 .Take(RandomNumberGenerator.GetInt32(3) + 1);
@@ -150,5 +150,49 @@ public static class FieldGeometry
         }
 
         return coordinates.Distinct().ToList();
+    }
+
+    public static Coordinate GetMostCentralCoordinate(IReadOnlyList<Coordinate> coordinates)
+    {
+        var distances = coordinates
+            .Select(c => (coordinate: c, distance: MaxDistance(coordinates, c)))
+            .OrderByDescending(x => x.distance)
+            .ToArray();
+
+        // if all distances are equal (i.e. weird shape with no big internal volume)
+        if (distances.GroupBy(x => x.distance).Count() == 1)
+        {
+            distances = coordinates
+                .Select(c => (coordinate: c, distance: TotalDistance(coordinates, c)))
+                .OrderBy(x => x.distance)
+                .ToArray();
+        }
+
+        return distances[0].coordinate;
+    }
+
+    private static double TotalDistance(IReadOnlyList<Coordinate> coordinates, Coordinate c)
+    {
+        return coordinates.Sum(o => Math.Pow(Math.Abs(c.X - o.X), 2) + Math.Pow(Math.Abs(c.Y - o.Y), 2));
+    }
+
+    private static double MaxDistance(IReadOnlyList<Coordinate> coordinates, Coordinate c)
+    {
+        return Enumerable.Range(0, 6)
+            .Select(dir => GetDistance(c, coordinates, dir))
+            .Min();
+    }
+
+    private static int GetDistance(Coordinate coordinate, IReadOnlyList<Coordinate> coordinates, int direction)
+    {
+        var neighborInDirection = GetNeighboringCoordinates(coordinate).ElementAt(direction);
+        if (coordinates.Contains(neighborInDirection))
+        {
+            return 1 + GetDistance(neighborInDirection, coordinates, direction);
+        }
+        else
+        {
+            return 0;
+        }
     }
 }

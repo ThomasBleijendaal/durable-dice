@@ -34,7 +34,7 @@ type DefaultAnimation () =
                     0.0,
                     float hexagons.CenterPosition.X, 
                     float hexagons.CenterPosition.Y,
-                    300.0)
+                    200.0)
                 gradient.addColorStop(1.0, "white")
                 gradient.addColorStop(0, color)
                 ctx.fillStyle <- !^gradient

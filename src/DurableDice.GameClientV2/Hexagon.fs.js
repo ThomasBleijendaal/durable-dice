@@ -46,6 +46,39 @@ export function HexagonModule_outerEdges(hex) {
 }
 
 export function HexagonModule_isInside(pos, hex) {
-    return PositionModule_distance(pos, hex.Position) < HexMath_r;
+    const dx = Math.abs(hex.Position.X - pos.X);
+    const dy = Math.abs(hex.Position.Y - pos.Y);
+    if ((dx < 1) && (dy < 1)) {
+        return true;
+    }
+    else if ((dx > HexMath_r) ? true : (dy > HexMath_r)) {
+        return false;
+    }
+    else {
+        const distance = PositionModule_distance(pos, hex.Position);
+        if (distance < HexMath_r) {
+            return true;
+        }
+        else {
+            const radToDeg = 3.141592653589793 / 180;
+            const normalizeAngle = (angle_mut) => {
+                normalizeAngle:
+                while (true) {
+                    const angle = angle_mut;
+                    if (angle > (30 * radToDeg)) {
+                        angle_mut = (angle - (60 * radToDeg));
+                        continue normalizeAngle;
+                    }
+                    else {
+                        return angle;
+                    }
+                    break;
+                }
+            };
+            const angle_1 = Math.abs(normalizeAngle(Math.atan(dy / dx) * radToDeg));
+            const maxDistance = HexMath_r / Math.cos(angle_1);
+            return distance <= (maxDistance + 1);
+        }
+    }
 }
 

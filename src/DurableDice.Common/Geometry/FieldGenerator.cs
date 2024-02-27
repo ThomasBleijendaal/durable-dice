@@ -45,29 +45,29 @@ public static class FieldGenerator
 
         foreach (var field in playerFields)
         {
-            Coordinate center;
+            Coordinate origin;
             if (first)
             {
-                center = coordinates.First(x =>
+                origin = coordinates.First(x =>
                     x.X > (2 * HorizontalCoordinates / 4) && x.X < (3 * HorizontalCoordinates / 4) &&
                     x.Y > (2 * VerticalCoordinates / 4) && x.Y < (3 * VerticalCoordinates / 4));
                 first = false;
             }
             else
             {
-                center = Neighbors(allCoordinates, 1)
+                origin = Neighbors(allCoordinates, 1)
                     .Intersect(coordinates)
                     .OrderBy(x => Guid.NewGuid())
                     .First();
             }
 
             var size = RandomNumberGenerator.GetInt32(6) + 4;
-            var block = FieldGeometry.GetShapeAroundCoordinate(center, size, coordinates);
+            var block = FieldGeometry.GetShapeAroundCoordinate(origin, size, coordinates);
             var allowedBlocks = block.Intersect(coordinates).ToList();
 
             field.Coordinates = allowedBlocks;
-            // TODO: find true center of field instead of the center thats a neighbor
-            field.Center = center;
+
+            field.Center = FieldGeometry.GetMostCentralCoordinate(allowedBlocks);
 
             allowedBlocks.ForEach(claimedBlock => coordinates.Remove(claimedBlock));
 

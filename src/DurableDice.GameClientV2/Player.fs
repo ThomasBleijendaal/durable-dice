@@ -14,6 +14,7 @@ type Player =
 
 module Player = 
     let isPlayer (playerId) (player) = player.Id = playerId
+    let isDead (player) = player.ContinuousFieldCount = 0
     let color (player) =
         Theme.color (Some player.Index)
     

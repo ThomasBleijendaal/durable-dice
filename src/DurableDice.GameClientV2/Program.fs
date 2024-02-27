@@ -12,6 +12,7 @@ open Hexagon
 open GameState
 open Animations
 
+// TODO: fix
 let endpoint = "http://localhost:7071"
 
 let playerId =
@@ -66,6 +67,11 @@ let isActivePlayer () =
     match GameState.currentState.ActivePlayerId with 
     | Some id when id = playerId -> true 
     | _ -> false
+
+let isAlivePlayer() =
+    match GameState.currentState.Players |> Array.tryFind (Player.isPlayer playerId) with
+    | Some player when player.ContinuousFieldCount = 0 -> false
+    | _ -> true
 
 let handleClickOnHexagon (foundHexagon: Hexagon option) =
     match GameState.currentRoundState, foundHexagon, GameState.selectedField with
@@ -155,41 +161,51 @@ let updateGameState (state: GameState option) =
         
         GameState.currentState <- state
 
+        let nextUrl = document.getElementById("nexturl") :?> HTMLAnchorElement
+        nextUrl.href <- $"{window.location.protocol}//{window.location.host}/{state.NextGameId}"
+
         if isActivePlayer () = false then
             GameState.resetRound ()
             GameState.currentUIState <- UIState.WatchingOtherPlayers
         else
             GameState.currentUIState <- UIState.PlayerTurn
         
-        // TODO: handle the incremented value so don't play animations twice
+        if GameState.currentState.Fields |> Array.groupBy (fun f -> f.OwnerId) |> Array.length = 1 then
+            GameState.currentUIState <- UIState.MatchEnd
 
-        match GameState.currentState.PreviousAttack with 
-        | None -> ()
-        | Some attack -> 
-            let animation : IHexagonAnimation =
-                match attack.IsSuccessful with
-                | true -> CapturedAnimation(attack.DefendingFieldId)
-                | false -> FailedCaptureAnimation(attack.AttackingFieldId)
+        if GameState.currentActionCount <> state.GameActionCount then
+            
+            GameState.currentActionCount <- state.GameActionCount
 
-            runningAnimations <- runningAnimations |> Array.append [| animation |]
+            match GameState.currentState.PreviousAttack with 
+            | None -> ()
+            | Some attack -> 
+                let animation : IHexagonAnimation =
+                    match attack.IsSuccessful with
+                    | true -> CapturedAnimation(attack.DefendingFieldId)
+                    | false -> FailedCaptureAnimation(attack.AttackingFieldId)
 
-        if GameState.currentRound <> GameState.currentState.GameRound then
-            GameState.currentRound <- GameState.currentState.GameRound
+                runningAnimations <- runningAnimations |> Array.append [| animation |]
 
-            runningAnimations <- runningAnimations 
-                |> Array.append (GameState.currentState.Fields 
-                    |> Array.filter (fun field -> field.DiceAdded > 0)
-                    |> Array.map (fun field -> GainedDiceAnimation(field.Id, field.DiceAdded)))
+            if GameState.currentRound <> GameState.currentState.GameRound then
+                GameState.currentRound <- GameState.currentState.GameRound
 
-        if currentFieldHexagons.Length = 0 then
-            currentFieldHexagons <- GameState.currentState.Fields |> Array.map (Field.groupHexagons GameState.currentState.Players)
-            allHexagons <- 
-                currentFieldHexagons 
-                |> Array.map (fun hexGroups -> hexGroups.Hexagons |> Array.collect id)      
-                |> Array.collect id
-            ownerColors <- Map(
-                GameState.currentState.Players
-                |> Array.map (fun player -> (player.Id, Theme.color (Some player.Index))))
+                runningAnimations <- runningAnimations 
+                    |> Array.append (GameState.currentState.Fields 
+                        |> Array.filter (fun field -> field.DiceAdded > 0)
+                        |> Array.map (fun field -> GainedDiceAnimation(field.Id, field.DiceAdded)))
+
+            if currentFieldHexagons.Length = 0 then
+                currentFieldHexagons <- GameState.currentState.Fields |> Array.map (Field.groupHexagons GameState.currentState.Players)
+                allHexagons <- 
+                    currentFieldHexagons 
+                    |> Array.map (fun hexGroups -> hexGroups.Hexagons |> Array.collect id)      
+                    |> Array.collect id
+                ownerColors <- Map(
+                    GameState.currentState.Players
+                    |> Array.map (fun player -> (player.Id, Theme.color (Some player.Index))))
+        else
+            console.log "Duplicate state received"
 
 let registerCallback (callback: string * obj -> unit) =
     signalRCommand <- callback
@@ -235,54 +251,78 @@ let rec draw (time: float) =
         GameState.drawPlayers ctx GameState.currentState |> ignore
         GameState.drawDice ctx GameState.currentState |> ignore
         GameState.drawTurn ctx GameState.currentState |> ignore
-
-    if previousUIState <> GameState.currentUIState then
         
-        console.log(GameState.currentUIState)
+        if previousUIState <> GameState.currentUIState then
+        
+            match GameState.currentUIState with
+            | UIState.EnterName -> 
+                hide("ready")
+                hide("end")
+                show("form")
+                show("joinGame")
+                hide("rules")
+                hide("gameRules")
+                hide("dead")
+                hide("winner")
+            | UIState.EnterRules ->
+                show("ready")
+                hide("end")
+                show("form")
+                hide("joinGame")
+                show("rules")
+                show("gameRules")
+                hide("dead")
+                hide("winner")
+            | UIState.WaitForAllReady ->
+                hide("ready")
+                hide("end")
+                hide("form")
+                hide("joinGame")
+                hide("rules")
+                hide("gameRules")
+                hide("dead")
+                hide("winner")
+            | UIState.WatchingOtherPlayers ->
+                hide("ready")
+                hide("end")
+                hide("form")
+                hide("joinGame")
+                hide("rules")
+                hide("gameRules")
+                if isAlivePlayer() then
+                    hide("dead")
+                else
+                    show("dead")
+                hide("winner")
+            | UIState.PlayerTurn ->
+                hide("ready")
+                show("end")
+                hide("form")
+                hide("joinGame")
+                hide("rules")
+                hide("gameRules")
+                hide("dead")
+                hide("winner")
+            | UIState.MatchEnd ->
+                hide("ready")
+                hide("end")
+                hide("form")
+                hide("joinGame")
+                hide("rules")
+                hide("gameRules")
+                if isAlivePlayer() then
+                    hide("dead")
+                    show("winner")
+                else
+                    show("dead")
+                    hide("winner")
 
-        match GameState.currentUIState with
-        | UIState.EnterName -> 
-            hide("ready")
-            hide("end")
-            show("form")
-            show("joinGame")
-            hide("rules")
-            hide("gameRules")
-        | UIState.EnterRules ->
-            show("ready")
-            hide("end")
-            show("form")
-            hide("joinGame")
-            show("rules")
-            show("gameRules")
-        | UIState.WaitForAllReady ->
-            hide("ready")
-            hide("end")
-            hide("form")
-            hide("joinGame")
-            hide("rules")
-            hide("gameRules")
-        | UIState.WatchingOtherPlayers ->
-            hide("ready")
-            hide("end")
-            hide("form")
-            hide("joinGame")
-            hide("rules")
-            hide("gameRules")
-        | UIState.PlayerTurn ->
-            hide("ready")
-            show("end")
-            hide("form")
-            hide("joinGame")
-            hide("rules")
-            hide("gameRules")
-
-        | _ -> ()
+            | _ -> ()
 
 
-        previousUIState <- GameState.currentUIState
+            previousUIState <- GameState.currentUIState
 
-        ()
+            ()
 
     window.requestAnimationFrame (draw >> ignore)
 

@@ -24,6 +24,10 @@ export function PlayerModule_isPlayer(playerId, player) {
     return player.Id === playerId;
 }
 
+export function PlayerModule_isDead(player) {
+    return player.ContinuousFieldCount === 0;
+}
+
 export function PlayerModule_color(player) {
     return color(player.Index);
 }

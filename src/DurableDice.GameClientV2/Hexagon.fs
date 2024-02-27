@@ -2,6 +2,7 @@ module Hexagon
 
 open HexMath
 open Models
+open System
 
 type Hexagon = {
     FieldId: string
@@ -27,6 +28,31 @@ module Hexagon =
     let position (hex: Hexagon) = hex.Position
     let outerEdges (hex: Hexagon) = hex.OuterEdges
     let isInside (pos: Position) (hex: Hexagon) =
-        // TODO: apply correct math instead of circle
-        Position.distance pos hex.Position < HexMath.r
+
+        let dx = abs (hex.Position.X - pos.X)
+        let dy = abs (hex.Position.Y - pos.Y)
+
+        if dx < 1.0<px> && dy < 1.0<px> then
+            true // close enough
+        else if dx > HexMath.r || dy > HexMath.r then
+            false // far enough
+        else
+            let distance = Position.distance pos hex.Position
+
+            if distance < HexMath.r then
+                true // in circle within hexagon
+            else
+                let radToDeg = Math.PI / 180.0
+
+                let rec normalizeAngle (angle) =
+                    if angle > (30.0 * radToDeg) then
+                        normalizeAngle (angle - (60.0 * radToDeg))
+                    else
+                        angle
+
+                let angle = abs (normalizeAngle (atan (dy / dx) * radToDeg))
+
+                let maxDistance = HexMath.r / (cos angle)
+
+                distance <= (maxDistance + 1.0<px>)
 

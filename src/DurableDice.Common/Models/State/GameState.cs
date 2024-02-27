@@ -21,6 +21,9 @@ public class GameState
     public int GameRound { get; set; }
 
     [JsonProperty]
+    public long GameActionCount { get; set; }
+
+    [JsonProperty]
     public Attack? PreviousAttack { get; set; }
 
     [JsonProperty]

@@ -16,6 +16,7 @@ type GameState =
       Fields: Fields
       ActivePlayerId: string option
       GameRound: int
+      GameActionCount: int64
       PreviousAttack: Attack option
       PreviousMove: Move option
       Rules: GameRules }
@@ -43,6 +44,7 @@ module GameState =
     let mutable currentUIState = UIState.Uninitialized
 
     let mutable currentRound = 0
+    let mutable currentActionCount = -2L
 
     let mutable selectedField: Field option = None
     let mutable hoverField: Field option = None
@@ -55,6 +57,7 @@ module GameState =
           Fields = [||]
           ActivePlayerId = None
           GameRound = 0
+          GameActionCount = -1
           PreviousAttack = None
           PreviousMove = None
           Rules =
@@ -143,7 +146,7 @@ module GameState =
             ctx.fillStyle <- !^ "white"
             ctx.font <- "12px Verdana"
             ctx.textAlign <- "center"
-            ctx.fillText ($"{field.DiceCount} ({field.Index})", float (position.X), float (position.Y) + 4.0, 30.0)
+            ctx.fillText ($"{field.DiceCount}", float (position.X), float (position.Y) + 4.0, 30.0)
 
         ignore
 
@@ -157,7 +160,27 @@ module GameState =
             let attackingColor = Player.color attackingPlayer
             let defendingColor = Player.color defendingPlayer
 
-            let dicePositions = [| 0,0; 1,0; 2,0; 3,0; 0,1; 2,1; 2,1; 3,1 |]
+            let diceDifference = (attack.AttackingDiceCount |> Array.sum) - (attack.DefendingDiceCount |> Array.sum)
+
+            let attackComment =
+                match diceDifference with
+                | i when i < -15 -> "got owned by"
+                | i when i < -10 -> "never stood a change against"
+                | i when i < -5 -> "underestimated"
+                | i when i < 0 -> "came short against"
+                | 0 -> "did not have enough for"
+                | i when i < 5 -> "barely won of"
+                | i when i < 10 -> "bullied"
+                | i when i < 15 -> "destroyed"
+                | _ -> "obliterated"
+
+            ctx.fillStyle <- !^ "black"
+            ctx.font <- "12px Verdana"
+            ctx.textAlign <- "center"
+            ctx.fillText (attackComment, 600, 1020, 400)
+
+
+            let dicePositions = [| 0,0; 1,0; 2,0; 3,0; 0,1; 1,1; 2,1; 3,1 |]
             let pipPositions = [| 
                 0,0,0, 0,0,0, 0,0,0;
                 0,0,0, 0,1,0, 0,0,0;
@@ -168,8 +191,8 @@ module GameState =
                 1,0,1, 1,0,1, 1,0,1;
                 |]
 
-            let attackPosition : Position = { X = 400.0<px>; Y = 1000.0<px> }
-            let defendPosition : Position = { X = 600.0<px>; Y = 1000.0<px> }
+            let attackPosition : Position = { X = 480.0<px>; Y = 1000.0<px> }
+            let defendPosition : Position = { X = 720.0<px>; Y = 1000.0<px> }
 
             let dieSize = 30.0<px>
 
@@ -237,15 +260,13 @@ module GameState =
                 if r pips = 1 then drawRPip pos
                 if bl pips = 1 then drawBlPip pos
                 if br pips = 1 then drawBrPip pos
-                               
-
             
             attack.AttackingDiceCount
             |> Array.iteri (fun index count ->
                 let position = dicePositions[index]
                 let pos = { 
                     X = attackPosition.X - (float(position |> fst) * 40.0<px>);
-                    Y = attackPosition.Y - (float(position |> snd) * 40.0<px>) }
+                    Y = attackPosition.Y + (float(position |> snd) * 40.0<px>) }
                 drawAttackDie (pos)
                 drawPips (pos) (pipPositions[count])
                 )
@@ -262,6 +283,8 @@ module GameState =
 
             ()
         | None, Some move ->
+
+            // TODO
 
             ()
         | _ -> ()

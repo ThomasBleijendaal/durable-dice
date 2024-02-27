@@ -8,7 +8,7 @@
   <style>
     * {
       box-sizing: content-box;
-      font: Verdana;
+      font-family: Verdana;
     }
 
 
@@ -17,6 +17,8 @@
       padding: 0;
       background-color: #d0d0d0;
       position: relative;
+      width: 1210px;
+      margin: 0px auto;
     }
 
     canvas {
@@ -45,13 +47,9 @@
       padding: 10px 30px;
     }
 
-    #gameRules {
-      
-    }
+    #gameRules {}
 
-    #joinGame {
-      
-    }
+    #joinGame {}
 
     #ready {
       float: right;
@@ -59,6 +57,26 @@
 
     #end {
       float: right;
+    }
+
+    #dead {
+      position: absolute;
+      left: 450px;
+      top: 100px;
+      width: 300px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 30px;
+      text-align: center;
+    }
+
+    #winner {
+      position: absolute;
+      left: 450px;
+      top: 100px;
+      width: 300px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 30px;
+      text-align: center;
     }
 
     .hide {
@@ -159,6 +177,12 @@
     <button id="end" class="hide">End Round</button>
   </div>
 
+  <div id="dead" class="hide">
+    <p>You are dead.<br /><br /><a href="/" id="nexturl">Go to next game.</a></p>
+  </div>
+  <div id="winner" class="hide">
+    <p>You have won!<br /><br /><a href="/" id="nexturl">Go to next game.</a></p>
+  </div>
 
   <script src="/lib/signalr.js"></script>
   <script type="module" src="/Theme.fs.js"></script>

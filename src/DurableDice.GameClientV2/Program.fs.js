@@ -1,18 +1,21 @@
 import { newGuid, tryParse } from "./fable_modules/fable-library.4.11.0/Guid.js";
 import { FSharpRef } from "./fable_modules/fable-library.4.11.0/Types.js";
 import { substring, replace } from "./fable_modules/fable-library.4.11.0/String.js";
-import { equals, uncurry2, disposeSafe, getEnumerator, numberHash, comparePrimitives, createAtom } from "./fable_modules/fable-library.4.11.0/Util.js";
+import { equals as equals_1, uncurry2, disposeSafe, getEnumerator, stringHash, numberHash, comparePrimitives, createAtom } from "./fable_modules/fable-library.4.11.0/Util.js";
 import { FSharpMap__get_Item, ofSeq } from "./fable_modules/fable-library.4.11.0/Map.js";
 import { name, getUnionFields } from "./fable_modules/fable-library.4.11.0/Reflection.js";
 import { Action, MoveFieldCommand, Position, Action_$reflection } from "./Models.fs.js";
 import { HexagonModule_isInside } from "./Hexagon.fs.js";
 import { collect, map, append, find, contains, tryFind } from "./fable_modules/fable-library.4.11.0/Array.js";
-import { GameStateModule_drawTurn, GameStateModule_drawDice, GameStateModule_drawPlayers, GameStateModule_currentRound, GameStateModule_resetRound, UIState, GameStateModule_currentUIState, GameStateModule_hoverField, RoundState, GameStateModule_currentRoundState, GameStateModule_selectedField, GameStateModule_currentState } from "./GameState.fs.js";
+import { GameStateModule_drawTurn, GameStateModule_drawDice, GameStateModule_drawPlayers, GameStateModule_currentRound, GameStateModule_currentActionCount, GameStateModule_resetRound, UIState, GameStateModule_currentUIState, GameStateModule_hoverField, RoundState, GameStateModule_currentRoundState, GameStateModule_selectedField, GameStateModule_currentState } from "./GameState.fs.js";
+import { PlayerModule_isPlayer } from "./Player.fs.js";
+import { Array_groupBy } from "./fable_modules/fable-library.4.11.0/Seq2.js";
+import { equals } from "./fable_modules/fable-library.4.11.0/BigInt.js";
 import { Animation_apply, GainedDiceAnimation_$ctor_Z18115A39, runningAnimations, FailedCaptureAnimation_$ctor_Z721C83C5, CapturedAnimation_$ctor_Z721C83C5 } from "./Animations.fs.js";
 import { FieldModule_groupHexagons } from "./Field.fs.js";
 import { color as color_1 } from "./Theme.fs.js";
-import { sortBy } from "./fable_modules/fable-library.4.11.0/Seq.js";
 import { some } from "./fable_modules/fable-library.4.11.0/Option.js";
+import { sortBy } from "./fable_modules/fable-library.4.11.0/Seq.js";
 
 export const endpoint = "http://localhost:7071";
 
@@ -118,6 +121,30 @@ export function isActivePlayer() {
             return true;
         default:
             return false;
+    }
+}
+
+export function isAlivePlayer() {
+    let player_1;
+    const matchValue = tryFind((player) => PlayerModule_isPlayer(playerId, player), GameStateModule_currentState().Players);
+    let matchResult, player_2;
+    if (matchValue != null) {
+        if ((player_1 = matchValue, player_1.ContinuousFieldCount === 0)) {
+            matchResult = 0;
+            player_2 = matchValue;
+        }
+        else {
+            matchResult = 1;
+        }
+    }
+    else {
+        matchResult = 1;
+    }
+    switch (matchResult) {
+        case 0:
+            return false;
+        default:
+            return true;
     }
 }
 
@@ -305,7 +332,7 @@ canvas.onmousemove = ((event) => {
 });
 
 export function updateGameState(state) {
-    let state_1, array_3, array_7, players;
+    let state_1, array_2, array_5, array_9, players;
     if (state != null) {
         if ((state_1 = state, state_1.Fields.length === 0)) {
             const state_2 = state;
@@ -321,6 +348,8 @@ export function updateGameState(state) {
         else {
             const state_3 = state;
             GameStateModule_currentState(state_3);
+            const nextUrl = document.getElementById("nexturl");
+            nextUrl.href = (`${window.location.protocol}//${window.location.host}/${state_3.NextGameId}`);
             if (isActivePlayer() === false) {
                 GameStateModule_resetRound();
                 GameStateModule_currentUIState(new UIState(4, []));
@@ -328,22 +357,34 @@ export function updateGameState(state) {
             else {
                 GameStateModule_currentUIState(new UIState(5, []));
             }
-            const matchValue = GameStateModule_currentState().PreviousAttack;
-            if (matchValue != null) {
-                const attack = matchValue;
-                const animation = attack.IsSuccessful ? CapturedAnimation_$ctor_Z721C83C5(attack.DefendingFieldId) : FailedCaptureAnimation_$ctor_Z721C83C5(attack.AttackingFieldId);
-                runningAnimations(append([animation], runningAnimations()));
+            if (((array_2 = Array_groupBy((f) => f.OwnerId, GameStateModule_currentState().Fields, {
+                Equals: (x, y) => (x === y),
+                GetHashCode: stringHash,
+            }), array_2.length)) === 1) {
+                GameStateModule_currentUIState(new UIState(6, []));
             }
-            if (GameStateModule_currentRound() !== GameStateModule_currentState().GameRound) {
-                GameStateModule_currentRound(GameStateModule_currentState().GameRound);
-                runningAnimations(append(map((field_1) => GainedDiceAnimation_$ctor_Z18115A39(field_1.Id, field_1.DiceAdded), (array_3 = GameStateModule_currentState().Fields, array_3.filter((field) => (field.DiceAdded > 0)))), runningAnimations()));
+            if (!equals(GameStateModule_currentActionCount(), state_3.GameActionCount)) {
+                GameStateModule_currentActionCount(state_3.GameActionCount);
+                const matchValue = GameStateModule_currentState().PreviousAttack;
+                if (matchValue != null) {
+                    const attack = matchValue;
+                    const animation = attack.IsSuccessful ? CapturedAnimation_$ctor_Z721C83C5(attack.DefendingFieldId) : FailedCaptureAnimation_$ctor_Z721C83C5(attack.AttackingFieldId);
+                    runningAnimations(append([animation], runningAnimations()));
+                }
+                if (GameStateModule_currentRound() !== GameStateModule_currentState().GameRound) {
+                    GameStateModule_currentRound(GameStateModule_currentState().GameRound);
+                    runningAnimations(append(map((field_1) => GainedDiceAnimation_$ctor_Z18115A39(field_1.Id, field_1.DiceAdded), (array_5 = GameStateModule_currentState().Fields, array_5.filter((field) => (field.DiceAdded > 0)))), runningAnimations()));
+                }
+                if (currentFieldHexagons().length === 0) {
+                    currentFieldHexagons((array_9 = GameStateModule_currentState().Fields, map((players = GameStateModule_currentState().Players, (field_2) => FieldModule_groupHexagons(players, field_2)), array_9)));
+                    allHexagons(collect((x_2) => x_2, map((hexGroups) => collect((x_1) => x_1, hexGroups.Hexagons), currentFieldHexagons())));
+                    ownerColors(ofSeq(map((player_1) => [player_1.Id, color_1(player_1.Index)], GameStateModule_currentState().Players), {
+                        Compare: comparePrimitives,
+                    }));
+                }
             }
-            if (currentFieldHexagons().length === 0) {
-                currentFieldHexagons((array_7 = GameStateModule_currentState().Fields, map((players = GameStateModule_currentState().Players, (field_2) => FieldModule_groupHexagons(players, field_2)), array_7)));
-                allHexagons(collect((x_1) => x_1, map((hexGroups) => collect((x) => x, hexGroups.Hexagons), currentFieldHexagons())));
-                ownerColors(ofSeq(map((player_1) => [player_1.Id, color_1(player_1.Index)], GameStateModule_currentState().Players), {
-                    Compare: comparePrimitives,
-                }));
+            else {
+                console.log(some("Duplicate state received"));
             }
         }
     }
@@ -416,50 +457,80 @@ export function draw(time) {
         GameStateModule_drawPlayers(ctx, GameStateModule_currentState());
         GameStateModule_drawDice(ctx, GameStateModule_currentState());
         GameStateModule_drawTurn(ctx, GameStateModule_currentState());
-    }
-    if (!equals(previousUIState(), GameStateModule_currentUIState())) {
-        console.log(some(GameStateModule_currentUIState()));
-        if (GameStateModule_currentUIState().tag === 1) {
-            hide("ready");
-            hide("end");
-            show("form");
-            show("joinGame");
-            hide("rules");
-            hide("gameRules");
+        if (!equals_1(previousUIState(), GameStateModule_currentUIState())) {
+            if (GameStateModule_currentUIState().tag === 1) {
+                hide("ready");
+                hide("end");
+                show("form");
+                show("joinGame");
+                hide("rules");
+                hide("gameRules");
+                hide("dead");
+                hide("winner");
+            }
+            else if (GameStateModule_currentUIState().tag === 2) {
+                show("ready");
+                hide("end");
+                show("form");
+                hide("joinGame");
+                show("rules");
+                show("gameRules");
+                hide("dead");
+                hide("winner");
+            }
+            else if (GameStateModule_currentUIState().tag === 3) {
+                hide("ready");
+                hide("end");
+                hide("form");
+                hide("joinGame");
+                hide("rules");
+                hide("gameRules");
+                hide("dead");
+                hide("winner");
+            }
+            else if (GameStateModule_currentUIState().tag === 4) {
+                hide("ready");
+                hide("end");
+                hide("form");
+                hide("joinGame");
+                hide("rules");
+                hide("gameRules");
+                if (isAlivePlayer()) {
+                    hide("dead");
+                }
+                else {
+                    show("dead");
+                }
+                hide("winner");
+            }
+            else if (GameStateModule_currentUIState().tag === 5) {
+                hide("ready");
+                show("end");
+                hide("form");
+                hide("joinGame");
+                hide("rules");
+                hide("gameRules");
+                hide("dead");
+                hide("winner");
+            }
+            else if (GameStateModule_currentUIState().tag === 6) {
+                hide("ready");
+                hide("end");
+                hide("form");
+                hide("joinGame");
+                hide("rules");
+                hide("gameRules");
+                if (isAlivePlayer()) {
+                    hide("dead");
+                    show("winner");
+                }
+                else {
+                    show("dead");
+                    hide("winner");
+                }
+            }
+            previousUIState(GameStateModule_currentUIState());
         }
-        else if (GameStateModule_currentUIState().tag === 2) {
-            show("ready");
-            hide("end");
-            show("form");
-            hide("joinGame");
-            show("rules");
-            show("gameRules");
-        }
-        else if (GameStateModule_currentUIState().tag === 3) {
-            hide("ready");
-            hide("end");
-            hide("form");
-            hide("joinGame");
-            hide("rules");
-            hide("gameRules");
-        }
-        else if (GameStateModule_currentUIState().tag === 4) {
-            hide("ready");
-            hide("end");
-            hide("form");
-            hide("joinGame");
-            hide("rules");
-            hide("gameRules");
-        }
-        else if (GameStateModule_currentUIState().tag === 5) {
-            hide("ready");
-            show("end");
-            hide("form");
-            hide("joinGame");
-            hide("rules");
-            hide("gameRules");
-        }
-        previousUIState(GameStateModule_currentUIState());
     }
     return window.requestAnimationFrame((arg_8) => {
         draw(arg_8);
