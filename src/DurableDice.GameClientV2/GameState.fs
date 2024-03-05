@@ -48,6 +48,7 @@ module GameState =
 
     let mutable selectedField: Field option = None
     let mutable hoverField: Field option = None
+    let mutable targetField: Field option = None
 
     let mutable currentRoundState = RoundState.Idle
 
@@ -177,7 +178,7 @@ module GameState =
             ctx.fillStyle <- !^ "black"
             ctx.font <- "12px Verdana"
             ctx.textAlign <- "center"
-            ctx.fillText (attackComment, 600, 1020, 400)
+            ctx.fillText (attackComment, 615, 1020, 220)
 
 
             let dicePositions = [| 0,0; 1,0; 2,0; 3,0; 0,1; 1,1; 2,1; 3,1 |]

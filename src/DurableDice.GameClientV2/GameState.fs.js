@@ -82,6 +82,8 @@ export let GameStateModule_selectedField = createAtom(void 0);
 
 export let GameStateModule_hoverField = createAtom(void 0);
 
+export let GameStateModule_targetField = createAtom(void 0);
+
 export let GameStateModule_currentRoundState = createAtom(new RoundState(0, []));
 
 export let GameStateModule_currentState = createAtom(new GameState(void 0, [], [], void 0, 0, toInt64(fromInt32(-1)), void 0, void 0, new GameRules(0, 0, 0, 0, 0)));
@@ -256,7 +258,7 @@ export function GameStateModule_drawTurn(ctx, state) {
             ctx.fillStyle = "black";
             ctx.font = "12px Verdana";
             ctx.textAlign = "center";
-            ctx.fillText(attackComment, 600, 1020, 400);
+            ctx.fillText(attackComment, 615, 1020, 220);
             const dicePositions = [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1]];
             const pipPositions = [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 1, 0, 0, 0, 1], [1, 0, 1, 0, 0, 0, 1, 0, 1], [1, 0, 1, 0, 1, 0, 1, 0, 1], [1, 0, 1, 1, 0, 1, 1, 0, 1]];
             const attackPosition = new Position(480, 1000);

@@ -6,12 +6,12 @@ import { FSharpMap__get_Item, ofSeq } from "./fable_modules/fable-library.4.11.0
 import { name, getUnionFields } from "./fable_modules/fable-library.4.11.0/Reflection.js";
 import { Action, MoveFieldCommand, Position, Action_$reflection } from "./Models.fs.js";
 import { HexagonModule_isInside } from "./Hexagon.fs.js";
-import { collect, map, append, find, contains, tryFind } from "./fable_modules/fable-library.4.11.0/Array.js";
-import { GameStateModule_drawTurn, GameStateModule_drawDice, GameStateModule_drawPlayers, GameStateModule_currentRound, GameStateModule_currentActionCount, GameStateModule_resetRound, UIState, GameStateModule_currentUIState, GameStateModule_hoverField, RoundState, GameStateModule_currentRoundState, GameStateModule_selectedField, GameStateModule_currentState } from "./GameState.fs.js";
+import { collect, map, append, find, contains, tryHead, tryFind } from "./fable_modules/fable-library.4.11.0/Array.js";
+import { GameStateModule_drawTurn, GameStateModule_drawDice, GameStateModule_drawPlayers, GameStateModule_currentRound, GameStateModule_currentActionCount, GameStateModule_resetRound, UIState, GameStateModule_currentUIState, GameStateModule_hoverField, RoundState, GameStateModule_targetField, GameStateModule_currentRoundState, GameStateModule_selectedField, GameStateModule_currentState } from "./GameState.fs.js";
 import { PlayerModule_isPlayer } from "./Player.fs.js";
 import { Array_groupBy } from "./fable_modules/fable-library.4.11.0/Seq2.js";
 import { equals } from "./fable_modules/fable-library.4.11.0/BigInt.js";
-import { Animation_apply, GainedDiceAnimation_$ctor_Z18115A39, runningAnimations, FailedCaptureAnimation_$ctor_Z721C83C5, CapturedAnimation_$ctor_Z721C83C5 } from "./Animations.fs.js";
+import { Animation_completeDone, Animation_apply, GainedDiceAnimation_$ctor_Z18115A39, runningAnimations, FailedCaptureAnimation_$ctor_Z721C83C5, CapturedAnimation_$ctor_Z384F8060 } from "./Animations.fs.js";
 import { FieldModule_groupHexagons } from "./Field.fs.js";
 import { color as color_1 } from "./Theme.fs.js";
 import { some } from "./fable_modules/fable-library.4.11.0/Option.js";
@@ -124,6 +124,30 @@ export function isActivePlayer() {
     }
 }
 
+export function isAdmin() {
+    let player;
+    const matchValue = tryHead(GameStateModule_currentState().Players);
+    let matchResult, player_1;
+    if (matchValue != null) {
+        if ((player = matchValue, player.Id === playerId)) {
+            matchResult = 0;
+            player_1 = matchValue;
+        }
+        else {
+            matchResult = 1;
+        }
+    }
+    else {
+        matchResult = 1;
+    }
+    switch (matchResult) {
+        case 0:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export function isAlivePlayer() {
     let player_1;
     const matchValue = tryFind((player) => PlayerModule_isPlayer(playerId, player), GameStateModule_currentState().Players);
@@ -158,12 +182,13 @@ export function handleClickOnHexagon(foundHexagon) {
                 const hexagon_1 = foundHexagon;
                 const foundField_1 = findField(hexagon_1.FieldId);
                 if (foundField_1 != null) {
-                    if ((field_2 = foundField_1, (field_2.OwnerId !== playerId) && contains(field_2.Index, attackingField.Neighbors, {
+                    if ((field_2 = foundField_1, ((field_2.OwnerId !== playerId) && (attackingField.DiceCount > 1)) && contains(field_2.Index, attackingField.Neighbors, {
                         Equals: (x, y) => (x === y),
                         GetHashCode: numberHash,
                     }))) {
                         const field_4 = foundField_1;
                         sendAction(new Action(4, [new MoveFieldCommand(attackingField.Id, field_4.Id)]));
+                        GameStateModule_targetField(field_4);
                         GameStateModule_selectedField(void 0);
                         GameStateModule_currentRoundState(new RoundState(0, []));
                     }
@@ -364,11 +389,13 @@ export function updateGameState(state) {
                 GameStateModule_currentUIState(new UIState(6, []));
             }
             if (!equals(GameStateModule_currentActionCount(), state_3.GameActionCount)) {
+                GameStateModule_targetField(void 0);
+                GameStateModule_selectedField(void 0);
                 GameStateModule_currentActionCount(state_3.GameActionCount);
                 const matchValue = GameStateModule_currentState().PreviousAttack;
                 if (matchValue != null) {
                     const attack = matchValue;
-                    const animation = attack.IsSuccessful ? CapturedAnimation_$ctor_Z721C83C5(attack.DefendingFieldId) : FailedCaptureAnimation_$ctor_Z721C83C5(attack.AttackingFieldId);
+                    const animation = attack.IsSuccessful ? CapturedAnimation_$ctor_Z384F8060(attack.AttackingFieldId, attack.DefendingFieldId) : FailedCaptureAnimation_$ctor_Z721C83C5(attack.AttackingFieldId);
                     runningAnimations(append([animation], runningAnimations()));
                 }
                 if (GameStateModule_currentRound() !== GameStateModule_currentState().GameRound) {
@@ -410,8 +437,11 @@ export let previousTime = createAtom(0);
 export let previousUIState = createAtom(new UIState(0, []));
 
 export function draw(time) {
+    window.requestAnimationFrame((arg) => {
+        const value = draw(arg);
+    });
     const delta = time - previousTime();
-    if (delta > 25) {
+    if (delta > 15) {
         previousTime(time);
         const w = canvas.width;
         const h = canvas.height;
@@ -454,6 +484,7 @@ export function draw(time) {
         finally {
             disposeSafe(enumerator);
         }
+        Animation_completeDone();
         GameStateModule_drawPlayers(ctx, GameStateModule_currentState());
         GameStateModule_drawDice(ctx, GameStateModule_currentState());
         GameStateModule_drawTurn(ctx, GameStateModule_currentState());
@@ -474,7 +505,12 @@ export function draw(time) {
                 show("form");
                 hide("joinGame");
                 show("rules");
-                show("gameRules");
+                if (isAdmin()) {
+                    show("gameRules");
+                }
+                else {
+                    hide("gameRules");
+                }
                 hide("dead");
                 hide("winner");
             }
@@ -532,12 +568,11 @@ export function draw(time) {
             previousUIState(GameStateModule_currentUIState());
         }
     }
-    return window.requestAnimationFrame((arg_8) => {
-        draw(arg_8);
-    });
 }
 
-draw(0);
+(function () {
+    const value = draw(0);
+})();
 
 updateGameState(void 0);
 

@@ -132,7 +132,7 @@
       <button id="addStrategicBot">Add strategic bot</button>
       <button id="addNerdBot">Add nerd bot</button>
 
-      <hr>
+      <!-- <hr>
 
       <p>
         These settings allow you to tweak the rules. Make only minor adjustments as these quickly
@@ -168,7 +168,7 @@
           Dead player count dice generation multiplier (0.0 - 2.0)
           <input id="deadPlayerMultiplier" type="number" min="1" max="8" step="0.01" value="1.0">
         </label>
-      </p>
+      </p> -->
     </div>
   </div>
 
@@ -221,15 +221,17 @@
       await connection.invoke("AddPlayer", { PlayerName: document.getElementById("name").value });
     }
     document.getElementById("ready").onclick = async function () {
-      await connection.invoke("ReadyWithRules", {
-        GameRules: {
-          StartDiceCountPerField: parseInt(document.getElementById("startDiceCount").value),
-          InitialDiceBuffer: parseInt(document.getElementById("startDiceBuffer").value),
-          MaxDiceMovedPerTurn: parseInt(document.getElementById("maxDiceMoves").value),
-          DiceGenerationMultiplier: parseFloat(document.getElementById("diceGenerationMultiplier").value),
-          DeadPlayerMultiplier: parseFloat(document.getElementById("deadPlayerMultiplier").value)
-        }
-      });
+      await connection.invoke("Ready", {});
+      // TODO:
+      // await connection.invoke("ReadyWithRules", {
+      //   GameRules: {
+      //     StartDiceCountPerField: parseInt(document.getElementById("startDiceCount").value),
+      //     InitialDiceBuffer: parseInt(document.getElementById("startDiceBuffer").value),
+      //     MaxDiceMovedPerTurn: parseInt(document.getElementById("maxDiceMoves").value),
+      //     DiceGenerationMultiplier: parseFloat(document.getElementById("diceGenerationMultiplier").value),
+      //     DeadPlayerMultiplier: parseFloat(document.getElementById("deadPlayerMultiplier").value)
+      //   }
+      // });
     }
     document.getElementById("end").onclick = async function () {
       await connection.invoke("EndRound", {});

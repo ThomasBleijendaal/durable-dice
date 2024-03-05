@@ -62,10 +62,15 @@ let findHexagon (event: MouseEvent) =
 
 let findField (id) = 
     GameState.currentState.Fields |> Array.tryFind (fun field -> field.Id = id)
-
+    
 let isActivePlayer () =
     match GameState.currentState.ActivePlayerId with 
     | Some id when id = playerId -> true 
+    | _ -> false
+
+let isAdmin () =
+    match GameState.currentState.Players |> Array.tryHead with 
+    | Some player when player.Id = playerId -> true 
     | _ -> false
 
 let isAlivePlayer() =
@@ -100,8 +105,9 @@ let handleClickOnHexagon (foundHexagon: Hexagon option) =
         | None -> 
             GameState.selectedField <- None
             GameState.currentRoundState <- RoundState.Idle
-        | Some field when field.OwnerId <> playerId && attackingField.Neighbors |> Array.contains field.Index -> 
+        | Some field when field.OwnerId <> playerId && attackingField.DiceCount > 1 && attackingField.Neighbors |> Array.contains field.Index -> 
             sendAction (Action.MoveField { FromFieldId = attackingField.Id; ToFieldId = field.Id })
+            GameState.targetField <- Some field
             GameState.selectedField <- None
             GameState.currentRoundState <- RoundState.Idle
         | Some field when field.OwnerId = playerId -> 
@@ -175,6 +181,8 @@ let updateGameState (state: GameState option) =
 
         if GameState.currentActionCount <> state.GameActionCount then
             
+            GameState.targetField <- None
+            GameState.selectedField <- None
             GameState.currentActionCount <- state.GameActionCount
 
             match GameState.currentState.PreviousAttack with 
@@ -182,7 +190,7 @@ let updateGameState (state: GameState option) =
             | Some attack -> 
                 let animation : IHexagonAnimation =
                     match attack.IsSuccessful with
-                    | true -> CapturedAnimation(attack.DefendingFieldId)
+                    | true -> CapturedAnimation(attack.AttackingFieldId, attack.DefendingFieldId)
                     | false -> FailedCaptureAnimation(attack.AttackingFieldId)
 
                 runningAnimations <- runningAnimations |> Array.append [| animation |]
@@ -219,9 +227,11 @@ let mutable previousTime = 0.0
 let mutable previousUIState = UIState.Uninitialized
 
 let rec draw (time: float) =
+    window.requestAnimationFrame (draw >> ignore) |> ignore
+
     let delta = time - previousTime
 
-    if delta > 25.0 then
+    if delta > 15.0 then
         previousTime <- time
 
         let w = canvas.width
@@ -248,6 +258,8 @@ let rec draw (time: float) =
             apply (fun animation -> animation.AnimateHexagon)
             apply (fun animation -> animation.AnimateOuterEdge)
 
+        Animation.completeDone ()
+
         GameState.drawPlayers ctx GameState.currentState |> ignore
         GameState.drawDice ctx GameState.currentState |> ignore
         GameState.drawTurn ctx GameState.currentState |> ignore
@@ -270,7 +282,10 @@ let rec draw (time: float) =
                 show("form")
                 hide("joinGame")
                 show("rules")
-                show("gameRules")
+                if isAdmin () then
+                    show("gameRules")
+                else
+                    hide ("gameRules")
                 hide("dead")
                 hide("winner")
             | UIState.WaitForAllReady ->
@@ -323,8 +338,6 @@ let rec draw (time: float) =
             previousUIState <- GameState.currentUIState
 
             ()
-
-    window.requestAnimationFrame (draw >> ignore)
 
 draw 0 |> ignore
 
